@@ -1,0 +1,358 @@
+"""
+FastAPI REST API — serves both the Tauri desktop UI and LAN browser clients.
+Runs on 0.0.0.0:8765 — accessible from the local machine and LAN.
+"""
+
+from __future__ import annotations
+import os
+import shutil
+import tempfile
+import uuid
+from pathlib import Path
+from typing import Optional
+
+from fastapi import (
+    FastAPI, UploadFile, File, Form, HTTPException, Depends, status
+)
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import OAuth2PasswordRequestForm
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
+
+import config
+import agent
+import ingest as ingester
+import store
+import users as user_store
+import auth as auth_module
+import license_client
+
+app = FastAPI(
+    title="Saravonix Local Memory Engine",
+    version="0.3.0",
+    description="Local Multi-User RBAC Legal Workstation",
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+# ── Pydantic models ────────────────────────────────────────────────────────────
+
+class SetupWorkspace(BaseModel):
+    firm_name: str
+    admin_name: str
+    admin_username: str
+    master_password: str
+
+class QueryRequest(BaseModel):
+    query: str
+    matter_id: Optional[str] = None
+    force_cloud: bool = False
+    use_heavy: bool = False  # use sarvam-105b for deep synthesis
+
+class UserCreate(BaseModel):
+    username: str
+    password: str
+    full_name: str = ""
+    email: str = ""
+    phone: str = ""
+    department: str = ""
+    role: str = "associate"
+
+class PasswordChange(BaseModel):
+    new_password: str
+
+class MatterCreate(BaseModel):
+    title: str
+    description: str = ""
+
+
+# ── Health & system ────────────────────────────────────────────────────────────
+
+@app.get("/health")
+def health():
+    lic = license_client.get_info()
+    return {
+        "status": "ok",
+        "version": "0.3.0",
+        "vertical": config.VERTICAL,
+        "llm_backend": config.LLM_BACKEND,
+        "sarvam_model": config.SARVAM_MODEL,
+        "license": lic,
+    }
+
+@app.get("/license")
+def get_license():
+    return license_client.get_info()
+
+
+# ── Setup & Auth endpoints ─────────────────────────────────────────────────────
+
+@app.get("/auth/setup-status")
+def setup_status():
+    return {"initialized": user_store.is_workspace_initialized()}
+
+@app.post("/auth/setup")
+def setup_workspace(body: SetupWorkspace):
+    if user_store.is_workspace_initialized():
+        raise HTTPException(status_code=400, detail="Workspace already initialized")
+    user = user_store.create_workspace(body.admin_name, body.admin_username, body.master_password)
+    return {"status": "ok", "admin": user}
+
+@app.get("/auth/profiles")
+def get_profiles():
+    # Returns public list of users for the Netflix-style login screen
+    if not user_store.is_workspace_initialized():
+        return {"profiles": []}
+    users = user_store.list_users()
+    profiles = [
+        {
+            "id": u["id"], 
+            "username": u["username"], 
+            "full_name": u["full_name"], 
+            "role": u["role"],
+            "department": u.get("department", "")
+        } 
+        for u in users if u["active"]
+    ]
+    return {"profiles": profiles}
+
+@app.post("/auth/login")
+async def login(form: OAuth2PasswordRequestForm = Depends()):
+    user = user_store.verify_password(form.username, form.password)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    token = auth_module.create_access_token(
+        user["id"], user["username"], user["role"]
+    )
+    return {"access_token": token, "token_type": "bearer", "role": user["role"]}
+
+@app.get("/auth/me")
+async def me(current_user: dict = Depends(auth_module.get_current_user)):
+    return {
+        "id": current_user["id"],
+        "username": current_user["username"],
+        "full_name": current_user.get("full_name", ""),
+        "role": current_user["role"],
+    }
+
+
+# ── Query & Chat ──────────────────────────────────────────────────────────────
+
+@app.post("/query")
+async def query(
+    req: QueryRequest,
+    current_user: dict = Depends(auth_module.get_current_user),
+):
+    if req.matter_id and not user_store.can_access_matter(current_user, req.matter_id):
+        raise HTTPException(status_code=403, detail="No access to this matter")
+
+    if req.force_cloud and not license_client.cloud_enabled():
+        raise HTTPException(
+            status_code=402,
+            detail="Cloud escalation requires an active license with cloud enabled.",
+        )
+
+    result = agent.answer(
+        query=req.query,
+        folder_id=req.matter_id,
+        force_cloud=req.force_cloud,
+        use_heavy=req.use_heavy,
+    )
+    
+    if req.matter_id:
+        db = store.get_db()
+        store.save_chat_message(db, req.matter_id, current_user["id"], "user", req.query)
+        store.save_chat_message(db, req.matter_id, current_user["id"], "assistant", result["answer"])
+
+    return result
+
+@app.get("/matters/{matter_id}/chat")
+def get_chat(
+    matter_id: str,
+    current_user: dict = Depends(auth_module.get_current_user),
+):
+    if not user_store.can_access_matter(current_user, matter_id):
+        raise HTTPException(status_code=403, detail="No access to this matter")
+    db = store.get_db()
+    history = store.get_chat_history(db, matter_id, current_user["id"])
+    return {"history": history}
+
+
+@app.get("/matters/{matter_id}/intelligence")
+def get_matter_intelligence(
+    matter_id: str,
+    current_user: dict = Depends(auth_module.get_current_user),
+):
+    if not user_store.can_access_matter(current_user, matter_id):
+        raise HTTPException(status_code=403, detail="No access to this matter")
+    
+    # Try to load cached intelligence
+    cached = user_store.get_matter_intelligence(matter_id)
+    if cached:
+        return cached
+        
+    # Generate on the fly
+    try:
+        data = agent.extract_intelligence(matter_id)
+        return data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to extract intelligence: {e}")
+
+
+# ── Document ingestion ────────────────────────────────────────────────────────
+
+@app.post("/ingest/file")
+async def ingest_file(
+    file: UploadFile = File(...),
+    matter_id: str = Form(default="default"),
+    force: bool = Form(default=False),
+    current_user: dict = Depends(auth_module.get_current_user),
+):
+    if current_user["role"] in ["intern"]:
+        raise HTTPException(status_code=403, detail="Interns cannot ingest documents")
+
+    if not user_store.can_access_matter(current_user, matter_id):
+        raise HTTPException(status_code=403, detail="No access to this matter")
+
+    suffix = Path(file.filename).suffix
+    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+        shutil.copyfileobj(file.file, tmp)
+        tmp_path = tmp.name
+
+    try:
+        result = ingester.ingest_file(tmp_path, folder_id=matter_id, force=force, verbose=False)
+        result["source_file"] = file.filename
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        os.unlink(tmp_path)
+
+
+# ── Matter management ─────────────────────────────────────────────────────────
+
+@app.get("/matters")
+def list_matters(current_user: dict = Depends(auth_module.get_current_user)):
+    user_matters = user_store.list_user_matters(current_user)
+    
+    db = store.get_db()
+    stats = store.list_matters_files_stats(db)
+    stats_map = {s["matter_id"]: s for s in stats}
+    
+    for m in user_matters:
+        m_stat = stats_map.get(m["id"], {"file_count": 0, "chunk_count": 0})
+        m["file_count"] = m_stat["file_count"]
+        m["chunk_count"] = m_stat["chunk_count"]
+
+    return {"matters": user_matters}
+
+@app.post("/matters")
+def create_matter(body: MatterCreate, current_user: dict = Depends(auth_module.get_current_user)):
+    if current_user["role"] in ["paralegal", "intern"]:
+        raise HTTPException(status_code=403, detail="Not authorized to create matters")
+    
+    matter_id = str(uuid.uuid4())[:8]
+    user_store.create_matter(matter_id, body.title, body.description, current_user["id"])
+    return {"id": matter_id, "title": body.title}
+
+@app.get("/matters/{matter_id}/files")
+def list_files(
+    matter_id: str,
+    current_user: dict = Depends(auth_module.get_current_user),
+):
+    if not user_store.can_access_matter(current_user, matter_id):
+        raise HTTPException(status_code=403, detail="No access to this matter")
+    db = store.get_db()
+    return {"matter_id": matter_id, "files": store.matter_files(db, matter_id)}
+
+
+@app.delete("/matters/{matter_id}/files/{filename}")
+def delete_file(
+    matter_id: str,
+    filename: str,
+    current_user: dict = Depends(auth_module.require_role("admin", "senior_partner")),
+):
+    db = store.get_db()
+    removed = store.delete_file(db, matter_id, filename)
+    return {"deleted_chunks": removed}
+
+
+# ── User management (admin only) ──────────────────────────────────────────────
+
+@app.get("/users")
+def get_users(
+    current_user: dict = Depends(auth_module.require_role("admin", "senior_partner")),
+):
+    return {"users": user_store.list_users()}
+
+
+@app.post("/users")
+def create_user(
+    body: UserCreate,
+    current_user: dict = Depends(auth_module.require_role("admin", "senior_partner")),
+):
+    info = license_client.validate()
+    existing = len(user_store.list_users())
+    seat_limit = info.get("seat_count", 5) # Default 5 for local office
+    if existing >= seat_limit:
+        raise HTTPException(
+            status_code=402,
+            detail=f"Seat limit reached ({seat_limit}). Upgrade your license to add more users.",
+        )
+    try:
+        user = user_store.create_user(
+            body.username, body.password, body.full_name, body.email, body.phone, body.department, body.role
+        )
+        return {"user": user}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.post("/matters/{matter_id}/access/{user_id}")
+def grant_access(
+    matter_id: str,
+    user_id: int,
+    permission: str = "read",
+    current_user: dict = Depends(auth_module.require_role("admin", "senior_partner")),
+):
+    user_store.grant_matter_access(user_id, matter_id, permission)
+    return {"ok": True}
+
+
+# ── Serve built React UI (server mode — browsers on LAN) ──────────────────────
+_ui_dist = Path(__file__).parent.parent / "ui" / "dist"
+if _ui_dist.exists():
+    app.mount("/", StaticFiles(directory=str(_ui_dist), html=True), name="ui")
+
+
+# ── Entry point ────────────────────────────────────────────────────────────────
+
+if __name__ == "__main__":
+    import uvicorn
+    from pathlib import Path
+    
+    if not Path("models/model.gguf").exists():
+        print("[saravonix] Model not found. Auto-downloading on first launch...")
+        try:
+            import download_model
+            download_model.download("qwen")
+        except Exception as e:
+            print(f"[saravonix] Auto-download failed: {e}")
+
+    uvicorn.run(
+        "api:app",
+        host=config.API_HOST,
+        port=config.API_PORT,
+        reload=False,
+        log_level="info",
+    )

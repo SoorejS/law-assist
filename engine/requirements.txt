@@ -1,0 +1,35 @@
+# ── Core API ──────────────────────────────────────────────────────────────────
+fastapi>=0.111.0
+uvicorn[standard]>=0.30.0
+python-dotenv>=1.0.0
+pyyaml>=6.0
+pydantic>=2.7.0
+
+# ── Document parsing ──────────────────────────────────────────────────────────
+pymupdf>=1.24.0
+python-docx>=1.1.0
+pandas>=2.2.0
+openpyxl>=3.1.0
+
+# ── Embeddings (CPU) ──────────────────────────────────────────────────────────
+sentence-transformers>=3.1.0
+
+# ── Vector store ──────────────────────────────────────────────────────────────
+sqlite-vec>=0.1.6
+
+# ── Cloud LLM clients ─────────────────────────────────────────────────────────
+anthropic>=0.40.0
+openai>=1.40.0          # Sarvam API (OpenAI-compatible) + optional OpenAI fallback
+
+# ── Multi-user auth ───────────────────────────────────────────────────────────
+passlib[bcrypt]>=1.7.4
+python-jose[cryptography]>=3.3.0
+python-multipart>=0.0.9  # required for OAuth2PasswordRequestForm
+
+# ── CLI formatting ────────────────────────────────────────────────────────────
+rich>=13.7.0
+
+# ── Local LLM (optional — only needed if LLM_BACKEND=local) ──────────────────
+# Install separately — platform-specific build flags needed:
+#   macOS Apple Silicon:  CMAKE_ARGS="-DLLAMA_METAL=on" pip install llama-cpp-python
+#   macOS Intel / Linux:  CMAKE_ARGS="-DLLAMA_METAL=off" pip install llama-cpp-python

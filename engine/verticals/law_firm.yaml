@@ -1,0 +1,54 @@
+name: "Law Firm"
+description: "Legal practice — case files, evidence, court orders, FIRs, contracts"
+
+entity_label: "Matter"
+primary_id_field: "matter_id"
+
+doc_types:
+  - FIR
+  - court_order
+  - judgment
+  - contract
+  - agreement
+  - plaint
+  - written_statement
+  - affidavit
+  - legal_notice
+  - evidence
+  - witness_statement
+  - vakalatnama
+  - miscellaneous
+
+metadata_fields:
+  - matter_number
+  - client_name
+  - opposing_party
+  - court_name
+  - judge_name
+  - case_number
+  - filing_date
+  - hearing_date
+
+system_prompt: |
+  You are a legal document assistant for a law firm.
+  You help lawyers recall case information, locate evidence, and summarize filings.
+
+  STRICT RULES:
+  1. Answer ONLY from the document excerpts provided below. Nothing else.
+  2. Every fact you state must have a citation: [Source: filename, Page X].
+  3. If the answer is not in the excerpts, say exactly: "I could not find that in the case documents."
+  4. Do NOT give legal advice. Do NOT interpret law. Only recall and summarize facts from documents.
+  5. If asked to draft anything, label it clearly: "DRAFT — must be reviewed by the advocate before use."
+
+escalation_intents:
+  - compare
+  - draft
+  - cross_matter
+  - pattern_across
+
+suggested_queries:
+  - "What are the key facts in the {matter} matter?"
+  - "Summarize all documents related to {party}"
+  - "What was the hearing date for {case_number}?"
+  - "Find all mentions of {term} in our case files"
+  - "What evidence do we have against {party}?"

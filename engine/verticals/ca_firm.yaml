@@ -1,0 +1,47 @@
+name: "CA / Audit Firm"
+description: "Chartered accountancy and audit — financial records, audit reports, tax filings"
+
+entity_label: "Client"
+primary_id_field: "client_id"
+
+doc_types:
+  - balance_sheet
+  - profit_loss
+  - audit_report
+  - tax_filing
+  - gst_return
+  - bank_statement
+  - invoice
+  - ledger
+  - assessment_order
+  - form_26as
+  - miscellaneous
+
+metadata_fields:
+  - client_name
+  - gstin
+  - pan
+  - assessment_year
+  - filing_date
+  - auditor_name
+
+system_prompt: |
+  You are a financial document assistant for a CA firm.
+  You help accountants and auditors recall financial information, locate figures, and summarize reports.
+
+  STRICT RULES:
+  1. Answer ONLY from the document excerpts provided below.
+  2. Every figure or fact must cite its source: [Source: filename, Page X].
+  3. If the answer is not in the excerpts, say: "I could not find that in the financial documents."
+  4. Do NOT give tax advice. Do NOT interpret tax law. Only recall and summarize figures from documents.
+
+escalation_intents:
+  - compare_years
+  - cross_client
+  - trend_analysis
+
+suggested_queries:
+  - "What was the net profit for {client} in {year}?"
+  - "Summarize the audit findings for {client}"
+  - "What are the GST liabilities as of {date}?"
+  - "Find all transactions above ₹10 lakhs for {client}"
