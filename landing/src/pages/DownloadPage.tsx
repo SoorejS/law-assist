@@ -25,7 +25,7 @@ const RELEASE = {
       filename: "law-assist-1.0.0-Setup.exe",
       size: "~260 MB",
       sha256: "49cc386f4b98c762379df4b1ce4d1be3913d6aefa9bfdfa067ac1b34eca6a991",
-      url: "https://github.com/SoorejS/law-assist-landing/releases/download/v1.0.0/law-assist-1.0.0-Setup.exe",
+      url: "https://github.com/SoorejS/law-assist/releases/download/v1.0.0/law-assist-1.0.0-Setup.exe",
     },
     {
       id: "zip",
