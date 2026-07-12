@@ -130,17 +130,21 @@ def generate(
     use_heavy: bool = False,
 ) -> tuple[str, str]:
     """Returns (response_text, backend_used)."""
+    import re
     backend = backend or config.LLM_BACKEND
 
     if backend == "sarvam":
-        return sarvam_generate(system_prompt, user_prompt, use_heavy=use_heavy), "sarvam"
+        ans, b = sarvam_generate(system_prompt, user_prompt, use_heavy=use_heavy), "sarvam"
     elif backend == "local":
         full = _build_local_prompt(system_prompt, user_prompt)
-        return local_generate(full), "local"
+        ans, b = local_generate(full), "local"
     elif backend == "anthropic":
-        return anthropic_generate(system_prompt, user_prompt), "anthropic"
+        ans, b = anthropic_generate(system_prompt, user_prompt), "anthropic"
     else:
         raise ValueError(f"Unknown LLM backend: {backend}")
+        
+    ans = re.sub(r'<thought>.*?</thought>', '', ans, flags=re.DOTALL | re.IGNORECASE).strip()
+    return ans, b
 
 
 def generate_with_fallback(

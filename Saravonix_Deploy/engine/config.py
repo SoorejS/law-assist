@@ -2,13 +2,27 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 
-# Load .env from engine directory
-load_dotenv(Path(__file__).parent / ".env")
+import sys
 
-BASE_DIR = Path(__file__).parent
-DATA_DIR = BASE_DIR / "data"
-MODELS_DIR = BASE_DIR / "models"
+# Determine BASE_DIR and Persistent Data Directories
+if getattr(sys, 'frozen', False):
+    # PyInstaller bundle
+    PERSISTENT_DIR = Path.home() / ".law-assist"
+    PERSISTENT_DIR.mkdir(exist_ok=True)
+    DATA_DIR = PERSISTENT_DIR / "data"
+    MODELS_DIR = PERSISTENT_DIR / "models"
+    BASE_DIR = Path(sys._MEIPASS)
+else:
+    BASE_DIR = Path(__file__).parent
+    DATA_DIR = BASE_DIR / "data"
+    MODELS_DIR = BASE_DIR / "models"
+
+DATA_DIR.mkdir(parents=True, exist_ok=True)
+MODELS_DIR.mkdir(parents=True, exist_ok=True)
 VERTICALS_DIR = BASE_DIR / "verticals"
+
+# Load .env from BASE_DIR
+load_dotenv(BASE_DIR / ".env")
 
 # ── Vector DB ─────────────────────────────────────────────────────────────────
 VECTOR_DB_PATH = str(DATA_DIR / "memory.db")

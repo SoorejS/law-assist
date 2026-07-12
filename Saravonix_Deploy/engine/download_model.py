@@ -14,9 +14,10 @@ Usage:
 import sys
 import os
 from pathlib import Path
+import config
 
-MODELS_DIR = Path(__file__).parent / "models"
-MODELS_DIR.mkdir(exist_ok=True)
+MODELS_DIR = config.MODELS_DIR
+MODELS_DIR.mkdir(parents=True, exist_ok=True)
 
 REGISTRY = {
     "sarvam": {

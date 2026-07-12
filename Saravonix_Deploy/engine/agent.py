@@ -27,7 +27,7 @@ NOT_FOUND = "I could not find that in your documents."
 
 def answer(
     query: str,
-    folder_id: Optional[str] = None,
+    matter_id: Optional[str] = None,
     force_cloud: bool = False,
     use_heavy: bool = False,
 ) -> dict:
@@ -42,7 +42,7 @@ def answer(
 
     # ── 1. Retrieve ────────────────────────────────────────────────────────────
     t_ret = time.time()
-    chunks = retriever.retrieve(query, folder_id=folder_id)
+    chunks = retriever.retrieve(query, matter_id=matter_id)
     retrieval_ms = int((time.time() - t_ret) * 1000)
 
     # ── 2. Nothing found → honest reply ───────────────────────────────────────
@@ -195,7 +195,7 @@ def extract_intelligence(matter_id: str) -> dict:
     import json
     
     query = "extract timeline dates key people parties involved potential contradictions and missing evidence or gaps"
-    chunks = retriever.retrieve(query, folder_id=matter_id, top_k=15)
+    chunks = retriever.retrieve(query, matter_id=matter_id, top_k=15)
     
     if not chunks:
         return {

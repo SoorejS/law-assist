@@ -1,11 +1,18 @@
 """
 sqlite-vec wrapper — vector store + metadata store in a single DB file.
 One DB file per installation. Namespaced by folder/matter ID.
+
+Production hardened:
+- WAL mode for concurrent read safety
+- busy_timeout to handle concurrent write contention
+- Context manager for proper connection lifecycle
+- check_same_thread=False for multi-threaded FastAPI
 """
 
 import sqlite3
 import struct
 import json
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Optional
 
@@ -18,15 +25,29 @@ def _pack(vector: list[float]) -> bytes:
 
 
 def get_db() -> sqlite3.Connection:
+    """Open and return a configured SQLite connection. Caller must close it."""
     Path(config.VECTOR_DB_PATH).parent.mkdir(parents=True, exist_ok=True)
-    db = sqlite3.connect(config.VECTOR_DB_PATH)
+    db = sqlite3.connect(config.VECTOR_DB_PATH, check_same_thread=False)
     db.enable_load_extension(True)
     sqlite_vec.load(db)
     db.enable_load_extension(False)
     db.row_factory = sqlite3.Row
     db.execute("PRAGMA journal_mode=WAL")
+    db.execute("PRAGMA busy_timeout=5000")   # wait up to 5s on locked DB
+    db.execute("PRAGMA synchronous=NORMAL")  # safer than FULL, faster than default
+    db.execute("PRAGMA cache_size=-64000")   # 64MB page cache
     _init_schema(db)
     return db
+
+
+@contextmanager
+def get_db_context():
+    """Context manager that opens a DB connection and guarantees it is closed."""
+    db = get_db()
+    try:
+        yield db
+    finally:
+        db.close()
 
 
 def _init_schema(db: sqlite3.Connection) -> None:
@@ -97,7 +118,7 @@ def vector_search(
     matter_id: Optional[str] = None,
 ) -> list[dict]:
     top_k = top_k or config.TOP_K
-    fetch_k = top_k * 4 if matter_id else top_k  # over-fetch then filter by matter
+    fetch_k = top_k * 4 if matter_id else top_k
 
     rows = db.execute(
         """
@@ -142,7 +163,6 @@ def keyword_search(
     matter_id: Optional[str] = None,
 ) -> list[dict]:
     top_k = top_k or config.KEYWORD_TOP_K
-    # Use FTS-style LIKE matching — simple but effective for exact legal terms
     terms = [t for t in query.lower().split() if len(t) > 3]
     if not terms:
         return []
@@ -158,7 +178,6 @@ def keyword_search(
 
     rows = db.execute(sql, params).fetchall()
 
-    # Score by how many terms matched
     scored = []
     for r in rows:
         text_lower = r["chunk_text"].lower()
@@ -239,6 +258,7 @@ def save_chat_message(db: sqlite3.Connection, matter_id: str, user_id: int, role
         (matter_id, user_id, role, content)
     )
     db.commit()
+
 
 def get_chat_history(db: sqlite3.Connection, matter_id: str, user_id: int) -> list[dict]:
     rows = db.execute(

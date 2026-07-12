@@ -10,8 +10,8 @@ from embedder import get_embedder
 
 def retrieve(
     query: str,
-    folder_id: Optional[str] = None,
-    top_k: int = None,
+    matter_id: Optional[str] = None,
+    top_k: int = 5,
 ) -> list[dict]:
     """
     Hybrid retrieval: vector similarity + keyword match, deduplicated and ranked.
@@ -20,11 +20,11 @@ def retrieve(
     top_k = top_k or config.TOP_K
     db = store.get_db()
     embedder = get_embedder()
-
+    
     query_vec = embedder.encode_query(query)
-
-    vec_results = store.vector_search(db, query_vec, top_k=top_k, folder_id=folder_id)
-    kw_results = store.keyword_search(db, query, top_k=config.KEYWORD_TOP_K, folder_id=folder_id)
+    
+    vec_results = store.vector_search(db, query_vec, top_k=top_k, matter_id=matter_id)
+    kw_results = store.keyword_search(db, query, top_k=config.KEYWORD_TOP_K, matter_id=matter_id)
 
     # Merge, deduplicate by chunk id, prefer lower (better) distance
     seen: dict[int, dict] = {}
