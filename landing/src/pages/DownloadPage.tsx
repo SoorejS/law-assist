@@ -1,7 +1,8 @@
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
+import { Monitor, Package, Apple, Server, ClipboardList, CheckSquare } from "lucide-react";
 
-// Release manifest — in production this is fetched from https://law-assist.com/releases/release.json
+// Release manifest — in production this is fetched from https://ProAssist.com/releases/release.json
 const RELEASE = {
   version: "1.0.0",
   released: "2026-06-17",
@@ -19,22 +20,22 @@ const RELEASE = {
       label: "Windows Installer (EXE)",
       sublabel: "Recommended for most users",
       description: "Full installer with setup wizard, start menu shortcut and uninstaller.",
-      icon: "🪟",
+      icon: <Monitor className="w-8 h-8 text-blue-600" />,
       badge: "Recommended",
-      badgeColor: "bg-blue-500/20 text-blue-300 border-blue-500/30",
-      filename: "law-assist-1.0.0-Setup.exe",
+      badgeColor: "bg-blue-100 text-blue-700 border-blue-200",
+      filename: "ProAssist-1.0.0-Setup.exe",
       size: "~260 MB",
       sha256: "49cc386f4b98c762379df4b1ce4d1be3913d6aefa9bfdfa067ac1b34eca6a991",
-      url: "https://github.com/SoorejS/law-assist/releases/download/v1.0.0/law-assist-1.0.0-Setup.exe",
+      url: "https://github.com/SoorejS/ProAssist/releases/download/v1.0.0/ProAssist-1.0.0-Setup.exe",
     },
     {
       id: "zip",
       label: "Portable ZIP",
       sublabel: "No installation required",
       description: "Extract and run. No admin rights needed. Perfect for USB drives.",
-      icon: "📦",
+      icon: <Package className="w-8 h-8 text-indigo-600" />,
       badge: null,
-      filename: "law-assist-1.0.0-Portable.zip",
+      filename: "ProAssist-1.0.0-Portable.zip",
       size: "~260 MB",
       sha256: "99e8a7e153cb4bfdd8810839b0747bdd367cf655c4e63766fa985539d6803067",
       url: "",
@@ -45,9 +46,9 @@ const RELEASE = {
       label: "macOS Installer",
       sublabel: "Apple Silicon & Intel",
       description: "Native macOS application bundle with Metal GPU acceleration.",
-      icon: "🍎",
+      icon: <Apple className="w-8 h-8 text-slate-800" />,
       badge: null,
-      filename: "law-assist-1.0.0.dmg",
+      filename: "ProAssist-1.0.0.dmg",
       size: "TBD",
       sha256: "Pending",
       url: "",
@@ -58,10 +59,10 @@ const RELEASE = {
       label: "Enterprise ISO",
       sublabel: "For IT-managed deployments",
       description: "Bootable ISO for silent enterprise deployment via Group Policy or SCCM.",
-      icon: "🏢",
+      icon: <Server className="w-8 h-8 text-purple-600" />,
       badge: "Enterprise",
-      badgeColor: "bg-purple-500/20 text-purple-300 border-purple-500/30",
-      filename: "law-assist-1.0.0-Enterprise.iso",
+      badgeColor: "bg-purple-100 text-purple-700 border-purple-200",
+      filename: "ProAssist-1.0.0-Enterprise.iso",
       size: "TBD",
       sha256: "Pending",
       url: "",
@@ -75,7 +76,7 @@ interface Artifact {
   label: string;
   sublabel: string;
   description: string;
-  icon: string;
+  icon: React.ReactNode;
   badge?: string | null;
   badgeColor?: string;
   filename: string;
@@ -98,7 +99,7 @@ function DownloadCard({ artifact }: { artifact: Artifact }) {
   };
 
   return (
-    <div className={`group bg-white/[0.02] border border-white/5 hover:border-white/10 hover:bg-white/[0.04] rounded-2xl p-7 transition-all flex flex-col ${artifact.comingSoon ? 'opacity-60' : ''}`}>
+    <div className={`group bg-white border border-slate-200 shadow-sm hover:shadow-md hover:border-slate-300 rounded-2xl p-7 transition-all flex flex-col ${artifact.comingSoon ? 'opacity-60' : ''}`}>
       <div className="flex items-start justify-between mb-4">
         <span className="text-3xl">{artifact.icon}</span>
         {artifact.badge && (
@@ -108,22 +109,22 @@ function DownloadCard({ artifact }: { artifact: Artifact }) {
         )}
       </div>
 
-      <h3 className="text-lg font-semibold text-white mb-1">{artifact.label}</h3>
-      <p className="text-xs text-blue-400 font-medium mb-3">{artifact.sublabel}</p>
-      <p className="text-slate-400 text-sm leading-relaxed mb-6 flex-1">{artifact.description}</p>
+      <h3 className="text-lg font-semibold text-slate-900 mb-1">{artifact.label}</h3>
+      <p className="text-xs text-blue-600 font-medium mb-3">{artifact.sublabel}</p>
+      <p className="text-slate-600 text-sm leading-relaxed mb-6 flex-1">{artifact.description}</p>
 
       <div className="space-y-2 mb-6 text-xs text-slate-500">
         <div className="flex justify-between">
           <span>Version</span>
-          <span className="text-slate-300 font-mono">{RELEASE.version}</span>
+          <span className="text-slate-700 font-mono">{RELEASE.version}</span>
         </div>
         <div className="flex justify-between">
           <span>Released</span>
-          <span className="text-slate-300">{RELEASE.released}</span>
+          <span className="text-slate-700">{RELEASE.released}</span>
         </div>
         <div className="flex justify-between">
           <span>Size</span>
-          <span className="text-slate-300">{artifact.size}</span>
+          <span className="text-slate-700">{artifact.size}</span>
         </div>
         <div className="flex justify-between">
           <span>SHA256</span>
@@ -134,7 +135,7 @@ function DownloadCard({ artifact }: { artifact: Artifact }) {
       <button
         onClick={handleDownload}
         disabled={downloading || artifact.comingSoon}
-        className={`w-full py-3 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2 ${artifact.comingSoon ? 'bg-slate-800 text-slate-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 text-white'}`}
+        className={`w-full py-3 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2 ${artifact.comingSoon ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white shadow-sm hover:shadow'}`}
       >
         {artifact.comingSoon ? (
           "Coming Soon"
@@ -165,17 +166,17 @@ export default function DownloadPage() {
   const [showChangelog, setShowChangelog] = useState(true);
 
   return (
-    <div className="min-h-screen bg-[#0B1120] text-slate-300" style={{ fontFamily: "Inter, sans-serif" }}>
+    <div className="min-h-screen bg-slate-50 text-slate-800" style={{ fontFamily: "Inter, sans-serif" }}>
       {/* Nav */}
-      <nav className="fixed w-full z-50 bg-[#0B1120]/80 backdrop-blur-lg border-b border-white/5">
+      <nav className="fixed w-full z-50 bg-white/80 backdrop-blur-lg border-b border-slate-200">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <button onClick={() => navigate("/")} className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
+            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-sm">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
             </div>
-            <span className="text-lg font-bold text-white" style={{ fontFamily: "Outfit, sans-serif" }}>law-assist</span>
+            <span className="text-lg font-bold text-slate-900" style={{ fontFamily: "Outfit, sans-serif" }}>ProAssist</span>
           </button>
-          <button onClick={() => navigate("/")} className="text-sm text-slate-400 hover:text-white transition-colors flex items-center gap-1">
+          <button onClick={() => navigate("/")} className="text-sm text-slate-500 hover:text-slate-900 transition-colors flex items-center gap-1">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M19 12H5M12 19l-7-7 7-7"/>
             </svg>
@@ -187,13 +188,13 @@ export default function DownloadPage() {
       <div className="pt-28 pb-20 max-w-7xl mx-auto px-6">
         {/* Header */}
         <div className="text-center mb-16">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-semibold mb-6">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-semibold mb-6 shadow-sm">
             v{RELEASE.version} · Released {RELEASE.released}
           </div>
-          <h1 className="text-5xl font-bold text-white mb-4" style={{ fontFamily: "Outfit, sans-serif" }}>
-            Download law-assist
+          <h1 className="text-5xl font-bold text-slate-900 mb-4" style={{ fontFamily: "Outfit, sans-serif" }}>
+            Download ProAssist
           </h1>
-          <p className="text-slate-400 text-lg max-w-xl mx-auto">
+          <p className="text-slate-600 text-lg max-w-xl mx-auto">
             Free to download. Runs 100% offline on your Windows PC. No accounts. No subscriptions.
           </p>
         </div>
@@ -207,11 +208,11 @@ export default function DownloadPage() {
 
         {/* System Requirements */}
         <div className="grid md:grid-cols-2 gap-6 mb-12">
-          <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-7">
-            <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
-              <span>💻</span> System Requirements
+          <div className="bg-white border border-slate-200 shadow-sm rounded-2xl p-7">
+            <h3 className="text-slate-900 font-semibold mb-4 flex items-center gap-2">
+              <Monitor className="w-5 h-5 text-blue-600" /> System Requirements
             </h3>
-            <ul className="space-y-2.5 text-sm text-slate-400">
+            <ul className="space-y-2.5 text-sm text-slate-600">
               {[
                 ["OS", "Windows 10 / 11 (64-bit)"],
                 ["RAM", "8GB minimum · 16GB recommended"],
@@ -222,19 +223,21 @@ export default function DownloadPage() {
               ].map(([key, val], i) => (
                 <li key={i} className="flex justify-between">
                   <span className="text-slate-500">{key}</span>
-                  <span className="text-slate-300">{val}</span>
+                  <span className="text-slate-800 font-medium">{val}</span>
                 </li>
               ))}
             </ul>
           </div>
 
           {/* Release Notes */}
-          <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-7">
+          <div className="bg-white border border-slate-200 shadow-sm rounded-2xl p-7">
             <button
               onClick={() => setShowChangelog(!showChangelog)}
-              className="w-full flex items-center justify-between text-white font-semibold mb-4"
+              className="w-full flex items-center justify-between text-slate-900 font-semibold mb-4"
             >
-              <span className="flex items-center gap-2">📋 v{RELEASE.version} Release Notes</span>
+              <span className="flex items-center gap-2">
+                <ClipboardList className="w-5 h-5 text-blue-600" /> v{RELEASE.version} Release Notes
+              </span>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
                 className={`transition-transform ${showChangelog ? "rotate-180" : ""}`}>
                 <path d="m6 9 6 6 6-6"/>
@@ -243,8 +246,8 @@ export default function DownloadPage() {
             {showChangelog && (
               <ul className="space-y-2">
                 {RELEASE.changelog.map((item, i) => (
-                  <li key={i} className="flex items-start gap-2.5 text-sm text-slate-400">
-                    <span className="text-emerald-400 flex-shrink-0 mt-0.5">✓</span>
+                  <li key={i} className="flex items-start gap-2.5 text-sm text-slate-600">
+                    <CheckSquare className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
                     {item}
                   </li>
                 ))}
@@ -254,10 +257,10 @@ export default function DownloadPage() {
         </div>
 
         {/* SHA256 Checksums */}
-        <div className="bg-white/[0.02] border border-white/5 rounded-2xl overflow-hidden">
+        <div className="bg-white border border-slate-200 shadow-sm rounded-2xl overflow-hidden">
           <button
             onClick={() => setShowChecksums(!showChecksums)}
-            className="w-full flex items-center justify-between px-7 py-5 text-white font-medium hover:bg-white/[0.02] transition-colors"
+            className="w-full flex items-center justify-between px-7 py-5 text-slate-900 font-semibold hover:bg-slate-50 transition-colors"
           >
             <span className="flex items-center gap-2 text-sm">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -271,8 +274,8 @@ export default function DownloadPage() {
             </svg>
           </button>
           {showChecksums && (
-            <div className="px-7 pb-7 border-t border-white/5">
-              <p className="text-xs text-slate-500 mb-4 mt-4">Run <code className="bg-slate-800 px-1.5 py-0.5 rounded text-slate-300">certutil -hashfile &lt;filename&gt; SHA256</code> in PowerShell to verify.</p>
+            <div className="px-7 pb-7 border-t border-slate-100">
+              <p className="text-xs text-slate-500 mb-4 mt-4">Run <code className="bg-slate-100 px-1.5 py-0.5 rounded text-slate-700">certutil -hashfile &lt;filename&gt; SHA256</code> in PowerShell to verify.</p>
               <div className="space-y-2">
                 {RELEASE.artifacts.map(a => (
                   <div key={a.id} className="flex items-center gap-3 font-mono text-xs">
@@ -287,14 +290,14 @@ export default function DownloadPage() {
 
         {/* Version History */}
         <div className="mt-12 text-center">
-          <h3 className="text-white font-semibold mb-6">Version History</h3>
-          <div className="inline-flex flex-col gap-2 text-sm text-slate-500">
+          <h3 className="text-slate-900 font-semibold mb-6">Version History</h3>
+          <div className="inline-flex flex-col gap-2 text-sm text-slate-600">
             {[["1.0.0", "2026-06-17", "Initial public release"]].map(([v, d, desc], i) => (
-              <div key={i} className="flex items-center gap-4 px-6 py-3 bg-white/[0.02] border border-white/5 rounded-xl">
-                <span className="text-blue-400 font-mono font-semibold">{v}</span>
+              <div key={i} className="flex items-center gap-4 px-6 py-3 bg-white border border-slate-200 shadow-sm rounded-xl">
+                <span className="text-blue-600 font-mono font-semibold">{v}</span>
                 <span>{d}</span>
-                <span className="text-slate-400">{desc}</span>
-                <span className="text-emerald-400 text-xs font-semibold">Current</span>
+                <span className="text-slate-500">{desc}</span>
+                <span className="text-emerald-600 text-xs font-bold">Current</span>
               </div>
             ))}
           </div>

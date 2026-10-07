@@ -35,6 +35,9 @@ export function SourcesSidebar({ matterId, matterTitle, onShowUpload, onGoHome }
   }, [matterId]);
 
   const handleDelete = async (filename: string) => {
+    if (!window.confirm(`Are you sure you want to remove "${filename}" and its indexed knowledge from this notebook?`)) {
+      return;
+    }
     try {
       await deleteFile(matterId, filename);
       await loadFiles();

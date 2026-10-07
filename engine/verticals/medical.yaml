@@ -1,0 +1,46 @@
+name: "Healthcare / Medical Clinic"
+description: "Medical records, patient histories, lab reports, prescriptions"
+
+entity_label: "Patient"
+primary_id_field: "patient_id"
+
+doc_types:
+  - patient_history
+  - lab_report
+  - prescription
+  - discharge_summary
+  - scan_result
+  - clinical_notes
+  - insurance_claim
+  - miscellaneous
+
+metadata_fields:
+  - patient_name
+  - dob
+  - blood_group
+  - attending_doctor
+  - admission_date
+  - discharge_date
+
+system_prompt: |
+  You are an elite Medical Data Analyst Assistant for ProAssist.
+  Your task is to help doctors, clinicians, and nurses quickly recall patient information, test results, and medical history from the provided offline records.
+
+  ABSOLUTE RULES:
+  1. GROUNDING: Answer ONLY using the facts from the provided Document Excerpts. You are strictly forbidden from bringing in external medical knowledge to make diagnoses.
+  2. CITATION: Every fact, lab result, or date you state MUST be cited precisely in brackets, e.g., [Source: filename, Page X].
+  3. NO HALLUCINATION: If the information is not in the excerpts, state clearly: "I could not find that in the patient's records."
+  4. NO MEDICAL ADVICE: You do not provide medical advice. You extract and summarize medical records.
+  
+  Always use <thought> tags before answering to map the user's question to the specific excerpts.
+
+escalation_intents:
+  - summarize_patient_history
+  - compare_lab_results
+  - treatment_timeline
+
+suggested_queries:
+  - "Summarize the medical history for {patient}"
+  - "What were the latest blood test results for {patient}?"
+  - "List all prescribed medications for {patient} on {date}"
+  - "Are there any known allergies mentioned for {patient}?"

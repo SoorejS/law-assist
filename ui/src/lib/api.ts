@@ -3,6 +3,8 @@ import type {
   FileInfo,
   IngestResult,
   QueryResponse,
+  DocComparisonResult,
+  WebVerifyResult,
 } from "./types";
 
 const BASE = "http://localhost:8765";
@@ -114,11 +116,19 @@ export async function fetchMatters(): Promise<MatterInfo[]> {
   return data.matters;
 }
 
-export async function createMatter(title: string, description: string = ""): Promise<any> {
+export async function createMatter(title: string, description: string = "", tags: string[] = []): Promise<any> {
   return request("/matters", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ title, description }),
+    body: JSON.stringify({ title, description, tags }),
+  });
+}
+
+export async function updateMatterTags(matterId: string, tags: string[]): Promise<{ matter_id: string; tags: string[] }> {
+  return request(`/matters/${encodeURIComponent(matterId)}/tags`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ tags }),
   });
 }
 
@@ -171,3 +181,114 @@ export async function deleteFile(
     { method: "DELETE" }
   );
 }
+
+// -- OpenWorker Coworkers --
+
+export async function fetchCoworkers(vertical?: string): Promise<{ coworkers: any[]; workspace_vertical: string }> {
+  const q = vertical ? `?vertical=${encodeURIComponent(vertical)}` : "";
+  return request(`/coworkers${q}`);
+}
+
+export async function runCoworker(
+  matterId: string,
+  coworkerId: string,
+  customInstruction?: string,
+  forceCloud = false,
+  useHeavy = false
+): Promise<any> {
+  return request(`/matters/${encodeURIComponent(matterId)}/coworker`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      coworker_id: coworkerId,
+      custom_instruction: customInstruction,
+      force_cloud: forceCloud,
+      use_heavy: useHeavy,
+    }),
+  });
+}
+
+export async function createCustomCoworker(data: {
+  id?: string;
+  name: string;
+  role: string;
+  description: string;
+  icon?: string;
+  vertical?: string;
+  system_prompt: string;
+  default_query: string;
+}): Promise<any> {
+  return request("/coworkers/custom", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteCustomCoworker(coworkerId: string): Promise<any> {
+  return request(`/coworkers/custom/${encodeURIComponent(coworkerId)}`, {
+    method: "DELETE",
+  });
+}
+
+export async function exportCoworkerBundle(coworkerId: string): Promise<any> {
+  return request(`/coworkers/${encodeURIComponent(coworkerId)}/export`);
+}
+
+export async function importCoworkerBundle(bundle: any): Promise<any> {
+  return request("/coworkers/import", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ bundle }),
+  });
+}
+
+export async function exportMatterWord(matterId: string): Promise<Blob> {
+  const token = localStorage.getItem("auth_token");
+  const headers: Record<string, string> = {};
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
+  const res = await fetch(`${BASE}/matters/${encodeURIComponent(matterId)}/export`, {
+    headers,
+  });
+  if (!res.ok) throw new Error("Failed to export Word report");
+  return res.blob();
+}
+
+export async function exportMatterCalendarIcs(matterId: string): Promise<Blob> {
+  const token = localStorage.getItem("auth_token");
+  const headers: Record<string, string> = {};
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
+  const res = await fetch(`${BASE}/matters/${encodeURIComponent(matterId)}/calendar.ics`, {
+    headers,
+  });
+  if (!res.ok) throw new Error("Failed to export calendar deadlines");
+  return res.blob();
+}
+
+export async function compareMatterDocs(
+  matterId: string,
+  doc1: string,
+  doc2: string,
+  focus?: string
+): Promise<DocComparisonResult> {
+  return request(`/matters/${encodeURIComponent(matterId)}/compare-docs`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ doc1, doc2, focus }),
+  });
+}
+
+export async function webVerify(
+  matterId: string,
+  query: string
+): Promise<WebVerifyResult> {
+  return request(`/matters/${encodeURIComponent(matterId)}/web-verify`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ query }),
+  });
+}
+
+

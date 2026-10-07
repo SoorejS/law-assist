@@ -4,6 +4,7 @@ Uses BGE-m3 (multilingual, handles English + Tamil + Hindi).
 """
 
 from __future__ import annotations
+from functools import lru_cache
 import numpy as np
 import config
 
@@ -20,7 +21,12 @@ class Embedder:
         return [0.0] * config.EMBEDDING_DIM
 
     def encode_query(self, query: str) -> list[float]:
-        return [0.0] * config.EMBEDDING_DIM
+        return list(self._cached_encode_query(query.strip().lower()))
+
+    @staticmethod
+    @lru_cache(maxsize=512)
+    def _cached_encode_query(query: str) -> tuple[float, ...]:
+        return tuple([0.0] * config.EMBEDDING_DIM)
 
     def encode_batch(self, texts: list[str], is_query: bool = False) -> list[list[float]]:
         return [[0.0] * config.EMBEDDING_DIM for _ in texts]

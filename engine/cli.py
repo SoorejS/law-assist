@@ -89,20 +89,20 @@ def handle_command(cmd: str, folder_id: str) -> bool:
         sys.exit(0)
 
     elif cmd == "/folders":
-        db = store.get_db()
-        folders = store.list_folders(db)
+        with store.get_db_context() as db:
+            folders = store.list_matters_files_stats(db)
         if not folders:
             print("No documents ingested yet.")
         else:
             for f in folders:
-                print(f"  [{f['folder_id']}] {f['file_count']} files, {f['chunk_count']} chunks — last: {f['last_updated']}")
+                print(f"  [{f['matter_id']}] {f['file_count']} files, {f['chunk_count']} chunks — last: {f.get('last_updated', 'N/A')}")
         return True
 
     elif cmd.startswith("/files"):
         parts = cmd.split()
         fid = parts[1] if len(parts) > 1 else folder_id
-        db = store.get_db()
-        files = store.folder_files(db, fid)
+        with store.get_db_context() as db:
+            files = store.matter_files(db, fid)
         if not files:
             print(f"No files in folder '{fid}'")
         else:
@@ -159,7 +159,7 @@ def main():
             continue
 
         try:
-            result = agent.answer(query, folder_id=folder_id, force_cloud=force_cloud)
+            result = agent.answer(query, matter_id=folder_id, force_cloud=force_cloud)
             print_result(result)
         except Exception as e:
             print(f"Error: {e}")

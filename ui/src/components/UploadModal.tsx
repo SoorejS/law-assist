@@ -66,9 +66,10 @@ export function UploadModal({ matters, defaultMatter, onClose, onDone }: Props) 
 
     for (const item of uploadable) {
       updateItem(item.file.name, { status: "uploading", progress: 10 });
+      let progressInterval: ReturnType<typeof setInterval> | null = null;
       try {
         // Simulate progress steps while real upload happens
-        const progressInterval = setInterval(() => {
+        progressInterval = setInterval(() => {
           setFileItems(prev => prev.map(i =>
             i.file.name === item.file.name && i.progress < 80
               ? { ...i, progress: i.progress + 15 }
@@ -77,8 +78,6 @@ export function UploadModal({ matters, defaultMatter, onClose, onDone }: Props) 
         }, 300);
 
         const result = await uploadFile(item.file, targetMatter);
-        clearInterval(progressInterval);
-
         if (result.skipped) {
           updateItem(item.file.name, { status: "skipped", progress: 100 });
         } else {
@@ -90,6 +89,8 @@ export function UploadModal({ matters, defaultMatter, onClose, onDone }: Props) 
           error: e?.message?.replace(/Engine error \d+: /, "").replace(/{"detail":"/, "").replace(/"}/g, "") || "Upload failed",
           progress: 0,
         });
+      } finally {
+        if (progressInterval) clearInterval(progressInterval);
       }
     }
 

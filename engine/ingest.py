@@ -296,8 +296,8 @@ def ingest_file(
     Returns { source_file, matter_id, chunks_added, skipped, error }.
     Never raises — errors are returned in the result dict.
     """
-    db = store.get_db()
     source_file = os.path.basename(file_path)
+    db = store.get_db()
 
     try:
         # Validate before doing any work
@@ -320,7 +320,7 @@ def ingest_file(
         doc_type = detect_doc_type(file_path, sample_text)
 
         embedder = get_embedder()
-        chunks_added = 0
+        chunks_to_insert = []
 
         for page_data in pages:
             text = page_data["text"]
@@ -332,7 +332,12 @@ def ingest_file(
                 chunk = chunk.strip()
                 if len(chunk.split()) < 15:  # skip tiny fragments
                     continue
-                embedding = embedder.encode_document(chunk)
+                chunks_to_insert.append((chunk, page_num, section))
+
+        if chunks_to_insert:
+            texts = [c[0] for c in chunks_to_insert]
+            embeddings = embedder.encode_batch(texts, is_query=False)
+            for (chunk, page_num, section), embedding in zip(chunks_to_insert, embeddings):
                 store.insert_chunk(
                     db=db,
                     matter_id=matter_id,
@@ -343,7 +348,9 @@ def ingest_file(
                     section=section,
                     doc_type=doc_type,
                 )
-                chunks_added += 1
+            chunks_added = len(chunks_to_insert)
+        else:
+            chunks_added = 0
 
         if verbose:
             print(f"  [done] {source_file} -> {chunks_added} chunks (type: {doc_type})")

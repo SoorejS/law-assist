@@ -24,6 +24,7 @@ export interface Message {
   timing?: Timing;
   timestamp: Date;
   isError?: boolean;
+  follow_ups?: string[];
 }
 
 export interface MatterInfo {
@@ -34,6 +35,38 @@ export interface MatterInfo {
   chunk_count: number;
   created_at: string;
   permission_level?: string;
+  tags?: string[];
+}
+
+export interface DocComparisonResult {
+  matter_id: string;
+  doc1: string;
+  doc2: string;
+  comparison: {
+    summary: string;
+    additions: string[];
+    deletions: string[];
+    modifications: Array<{
+      clause: string;
+      doc1_version: string;
+      doc2_version: string;
+      risk_impact: string;
+    }>;
+    risk_assessment: string;
+  };
+  backend: string;
+}
+
+export interface WebVerifyResult {
+  query: string;
+  sanitized_query: string;
+  pii_redacted: boolean;
+  results: Array<{
+    title: string;
+    snippet: string;
+    url: string;
+  }>;
+  status: string;
 }
 
 export interface FileInfo {
@@ -58,6 +91,7 @@ export interface QueryResponse {
   backend_used: string;
   escalated: boolean;
   timing: Timing;
+  follow_ups?: string[];
 }
 
 export interface IntelligenceData {
@@ -66,3 +100,31 @@ export interface IntelligenceData {
   contradictions: string[];
   missing_evidence: string[];
 }
+
+export interface Coworker {
+  id: string;
+  name: string;
+  role: string;
+  description: string;
+  icon: string;
+  vertical: string;
+  default_query: string;
+  is_builtin?: boolean;
+}
+
+export interface CoworkerOutcome {
+  coworker_id: string;
+  coworker_name: string;
+  role: string;
+  status: string;
+  title: string;
+  summary: string;
+  key_findings: string[];
+  risk_matrix: Array<{ item: string; severity: "low" | "medium" | "high"; detail: string }>;
+  action_plan: Array<{ step: number; action: string; owner_or_deadline: string }>;
+  citations: Array<{ source: string; page: string; reference: string }>;
+  markdown_memo: string;
+  backend_used: string;
+  timing: Timing;
+}
+

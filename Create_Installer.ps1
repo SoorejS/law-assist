@@ -6,6 +6,7 @@ New-Item -ItemType Directory -Path $DeployDir | Out-Null
 New-Item -ItemType Directory -Path "$DeployDir\engine" | Out-Null
 Copy-Item "engine\*.py" -Destination "$DeployDir\engine\"
 Copy-Item "engine\requirements.txt" -Destination "$DeployDir\engine\"
+Copy-Item -Recurse "engine\verticals" -Destination "$DeployDir\engine\"
 
 # 2. Copy compiled UI
 New-Item -ItemType Directory -Path "$DeployDir\ui" | Out-Null

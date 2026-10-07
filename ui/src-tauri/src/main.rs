@@ -29,17 +29,19 @@ fn main() {
                         "python3"
                     };
 
-                    // Try virtualenv first, fall back to system python
-                    let venv_python = dir.join(".venv_312").join(if cfg!(target_os = "windows") {
+                    let py_sub = if cfg!(target_os = "windows") {
                         "Scripts/python.exe"
                     } else {
                         "bin/python3"
-                    });
-                    let python_bin = if venv_python.exists() {
-                        venv_python.to_string_lossy().to_string()
-                    } else {
-                        python.to_string()
                     };
+                    let venv_python = if dir.join(".venv").join(py_sub).exists() {
+                        dir.join(".venv").join(py_sub)
+                    } else if dir.join(".venv_312").join(py_sub).exists() {
+                        dir.join(".venv_312").join(py_sub)
+                    } else {
+                        std::path::PathBuf::from(python)
+                    };
+                    let python_bin = venv_python.to_string_lossy().to_string();
 
                     match std::process::Command::new(&python_bin)
                         .arg("api.py")

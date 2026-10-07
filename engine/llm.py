@@ -32,7 +32,8 @@ def sarvam_generate(
             "SARVAM_API_KEY not set. Add it to engine/.env or set LLM_BACKEND=local."
         )
     # Sarvam uses api-subscription-key header (not Authorization: Bearer)
-    import httpx, json
+    import httpx, json, privacy_filter
+    user_prompt = privacy_filter.sanitize_text(user_prompt)
     model = config.SARVAM_MODEL_HEAVY if use_heavy else config.SARVAM_MODEL
     resp = httpx.post(
         f"{config.SARVAM_BASE_URL}/chat/completions",
@@ -110,7 +111,8 @@ def _build_local_prompt(system_prompt: str, user_prompt: str) -> str:
 def anthropic_generate(system_prompt: str, user_prompt: str) -> str:
     if not config.ANTHROPIC_API_KEY:
         raise ValueError("ANTHROPIC_API_KEY not set.")
-    import anthropic
+    import anthropic, privacy_filter
+    user_prompt = privacy_filter.sanitize_text(user_prompt)
     client = anthropic.Anthropic(api_key=config.ANTHROPIC_API_KEY)
     message = client.messages.create(
         model=config.ANTHROPIC_MODEL,
@@ -143,7 +145,7 @@ def generate(
     else:
         raise ValueError(f"Unknown LLM backend: {backend}")
         
-    ans = re.sub(r'<thought>.*?</thought>', '', ans, flags=re.DOTALL | re.IGNORECASE).strip()
+    ans = re.sub(r'<thought>(?:.*?</thought>|.*$)', '', ans, flags=re.DOTALL | re.IGNORECASE).strip()
     return ans, b
 
 

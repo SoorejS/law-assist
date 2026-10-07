@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { setupWorkspace } from "../lib/api";
 
 export function SetupScreen({ onComplete }: { onComplete: () => void }) {
-  const [form, setForm] = useState({ firm_name: "", admin_name: "", admin_username: "", master_password: "" });
+  const [form, setForm] = useState({ firm_name: "", admin_name: "", admin_username: "", master_password: "", vertical: "law_firm" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -44,6 +44,15 @@ export function SetupScreen({ onComplete }: { onComplete: () => void }) {
           <div>
             <label className="block text-slate-300 text-sm font-medium mb-1">Master Password</label>
             <input className="w-full bg-slate-800/50 text-white border border-slate-600 rounded-lg p-3 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all" type="password" placeholder="••••••••" value={form.master_password} onChange={e => setForm({...form, master_password: e.target.value})} required />
+          </div>
+          <div>
+            <label className="block text-slate-300 text-sm font-medium mb-1">Profession / Vertical</label>
+            <select className="w-full bg-slate-800/50 text-white border border-slate-600 rounded-lg p-3 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all appearance-none" value={form.vertical} onChange={e => setForm({...form, vertical: e.target.value})}>
+              <option value="law_firm">⚖️ Legal (Law Firms, Advocates)</option>
+              <option value="ca_firm">📊 Finance (Chartered Accountants)</option>
+              <option value="medical">🏥 Healthcare (Doctors, Clinics)</option>
+              <option value="generic">🏢 Generic Enterprise</option>
+            </select>
           </div>
           <button className="w-full bg-blue-600 hover:bg-blue-500 text-white rounded-lg p-3 mt-4 font-bold transition-colors shadow-lg" type="submit" disabled={loading}>
             {loading ? "Initializing..." : "Create Workspace"}

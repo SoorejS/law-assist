@@ -21,6 +21,8 @@ class LicenseError(Exception):
 def _send(payload: dict) -> dict:
     """Send a JSON request to the license daemon and return the response."""
     sock_path = config.LICENSE_DAEMON_SOCKET
+    if not hasattr(socket, "AF_UNIX"):
+        raise LicenseError("AF_UNIX sockets are not supported on Windows. Run with LICENSE_ENABLED=false.")
     try:
         with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
             s.settimeout(2.0)

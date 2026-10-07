@@ -1,7 +1,17 @@
 import { useState, useCallback, useEffect } from "react";
 import { v4 as uuid } from "./lib/uuid";
-import type { Message, MatterInfo } from "./lib/types";
-import { sendQuery, fetchMatters, checkSetupStatus, fetchCurrentUser, fetchChatHistory, createMatter } from "./lib/api";
+import type { Message, MatterInfo, Source, Coworker } from "./lib/types";
+import {
+  sendQuery,
+  fetchMatters,
+  checkSetupStatus,
+  fetchCurrentUser,
+  fetchChatHistory,
+  createMatter,
+  fetchCoworkers,
+  exportMatterCalendarIcs,
+  exportMatterWord,
+} from "./lib/api";
 import { useEngine } from "./hooks/useEngine";
 import { DashboardView } from "./components/DashboardView";
 import { SourcesSidebar } from "./components/SourcesSidebar";
@@ -13,6 +23,9 @@ import { IntelligenceSidebar } from "./components/IntelligenceSidebar";
 import { ToastContainer, useToast } from "./components/Toast";
 import { UpdateBanner } from "./components/UpdateBanner";
 import { Onboarding } from "./components/Onboarding";
+import { ApprovalModal } from "./components/ApprovalModal";
+import { CitationViewerModal } from "./components/CitationViewerModal";
+import { CommandPalette } from "./components/CommandPalette";
 
 type AppState = "loading" | "setup" | "login" | "main";
 
@@ -20,13 +33,35 @@ function MainApp() {
   const { status: engineStatus } = useEngine();
   const [appState, setAppState] = useState<AppState>("loading");
   const [matters, setMatters] = useState<MatterInfo[]>([]);
+  const [coworkers, setCoworkers] = useState<Coworker[]>([]);
   const [selectedMatter, setSelectedMatter] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showCommandPalette, setShowCommandPalette] = useState(false);
+  const [activeCitationSource, setActiveCitationSource] = useState<Source | null>(null);
   const [user, setUser] = useState<any>(null);
+  const [approvalGate, setApprovalGate] = useState<{
+    isOpen: boolean;
+    title: string;
+    actionDescription: string;
+    dataScope?: string;
+    onApprove: () => void;
+  } | null>(null);
   const { addToast } = useToast();
+
+  const requestApproval = useCallback((opts: {
+    title: string;
+    actionDescription: string;
+    dataScope?: string;
+    onApprove: () => void;
+  }) => {
+    setApprovalGate({
+      isOpen: true,
+      ...opts,
+    });
+  }, []);
 
   // Initialize Auth State
   useEffect(() => {
@@ -65,11 +100,24 @@ function MainApp() {
     return () => window.removeEventListener("auth_expired", onAuthExpired);
   }, []);
 
-  // Load matters when entering main state
+  // Load coworkers and matters when entering main state
   useEffect(() => {
     if (appState !== "main") return;
     refreshMatters();
+    fetchCoworkers().then(res => setCoworkers(res.coworkers || [])).catch(() => {});
   }, [appState]);
+
+  // Global Ctrl+K / Cmd+K listener for Command Palette
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setShowCommandPalette(prev => !prev);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   // Load chat history when matter changes
   useEffect(() => {
@@ -116,6 +164,7 @@ function MainApp() {
           escalated: result.escalated,
           timing: result.timing,
           timestamp: new Date(),
+          follow_ups: result.follow_ups,
         };
         setMessages(prev => [...prev, aiMsg]);
       } catch (e: any) {
@@ -135,16 +184,55 @@ function MainApp() {
     [isLoading, selectedMatter]
   );
 
-  const handleNewMatter = useCallback(async (name: string) => {
+  const handleNewMatter = useCallback(async (name: string, tags?: string[]) => {
     try {
-      const res = await createMatter(name);
+      const res = await createMatter(name, "", tags || []);
       await refreshMatters();
       setSelectedMatter(res.id);
-      addToast(`Notebook "${name}" created.`, "success");
+      addToast(`Matter "${name}" created.`, "success");
     } catch (e: any) {
-      addToast(`Failed to create notebook: ${e?.message ?? "unknown error"}`, "error");
+      addToast(`Failed to create matter: ${e?.message ?? "unknown error"}`, "error");
     }
   }, [refreshMatters]);
+
+  const handleExportCalendar = useCallback(async () => {
+    if (!selectedMatter) return;
+    try {
+      const blob = await exportMatterCalendarIcs(selectedMatter);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `ProAssist_Deadlines_${selectedMatter}.ics`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      addToast("Deadlines exported to calendar (.ics)", "success");
+    } catch (e: any) {
+      addToast("Failed to export calendar deadlines", "error");
+    }
+  }, [selectedMatter]);
+
+  const handleExportWord = useCallback(async (matterId?: string) => {
+    const targetId = matterId || selectedMatter;
+    if (!targetId) return;
+    try {
+      const blob = await exportMatterWord(targetId);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const targetM = matters.find(m => m.id === targetId);
+      const safeTitle = targetM ? targetM.title.replace(/[^a-zA-Z0-9_-]/g, "_") : `Matter_${targetId}`;
+      a.download = `${safeTitle}_Brief.docx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      addToast("Executive report exported (.docx)", "success");
+    } catch (e: any) {
+      addToast("Failed to export Word report", "error");
+    }
+  }, [selectedMatter, matters]);
 
   const handleUploadDone = useCallback(
     (matterId: string) => {
@@ -183,8 +271,22 @@ function MainApp() {
     <div className="flex h-screen bg-[#131314] font-sans overflow-hidden">
       <UpdateBanner />
 
-      {/* User profile / logout */}
-      <div className="absolute top-4 right-6 z-50">
+      {/* Top right quick actions */}
+      <div className="absolute top-4 right-6 z-50 flex items-center gap-2">
+        <button
+          onClick={() => setShowCommandPalette(true)}
+          className="flex items-center gap-1.5 bg-[#1e1f20] hover:bg-[#282a2c] border border-[#303134] px-3 py-1.5 rounded-full text-xs font-medium text-[#bdc1c6] transition-colors"
+          title="Global Search & Navigation (Ctrl+K)"
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+          <span>Spotlight</span>
+          <kbd className="bg-[#303134] text-[9px] px-1 py-0.2 rounded border border-[#3c4043] text-[#9aa0a6]">
+            Ctrl+K
+          </kbd>
+        </button>
+
         <button
           onClick={handleLogout}
           className="flex items-center gap-2 bg-[#1e1f20] hover:bg-[#282a2c] border border-[#303134] px-3 py-1.5 rounded-full text-xs font-medium text-[#e8eaed] transition-colors"
@@ -201,6 +303,8 @@ function MainApp() {
           matters={matters}
           onSelectMatter={setSelectedMatter}
           onCreateMatter={handleNewMatter}
+          onOpenCommandPalette={() => setShowCommandPalette(true)}
+          onExportWord={(mId) => handleExportWord(mId)}
         />
       ) : (
         <div className="flex flex-1 overflow-hidden h-full">
@@ -214,6 +318,46 @@ function MainApp() {
 
           {/* Center (Chat) */}
           <div className="flex flex-col flex-1 overflow-hidden relative z-10 bg-[#131314]">
+            {/* Top Bar with Word Export & Actions */}
+            <div className="flex-shrink-0 h-14 bg-[#131314] border-b border-[#2a2b2e] flex items-center justify-between px-6 z-20">
+              <div className="flex items-center gap-2 text-[#e8eaed] font-medium">
+                <span className="text-base font-semibold">{currentMatter?.title || selectedMatter}</span>
+                {currentMatter?.tags && currentMatter.tags.length > 0 && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-900/30 text-blue-300 border border-blue-800/40">
+                    {currentMatter.tags[0]}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => handleExportWord()}
+                  className="text-xs bg-[#1e1f20] hover:bg-blue-600/20 text-[#c4c7c5] hover:text-blue-300 border border-[#303134] hover:border-blue-500/40 rounded-lg px-3 py-1.5 flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
+                  title="Export full executive case brief as Microsoft Word (.docx)"
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-400">
+                    <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+                    <polyline points="14 2 14 8 20 8" />
+                    <line x1="16" y1="13" x2="8" y2="13" />
+                    <line x1="16" y1="17" x2="8" y2="17" />
+                  </svg>
+                  <span>Export Brief (.docx)</span>
+                </button>
+                <button
+                  onClick={handleExportCalendar}
+                  className="text-xs bg-[#1e1f20] hover:bg-emerald-600/20 text-[#c4c7c5] hover:text-emerald-300 border border-[#303134] hover:border-emerald-500/40 rounded-lg px-3 py-1.5 flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
+                  title="Export court deadlines to Calendar (.ics)"
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-emerald-400">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                    <line x1="16" y1="2" x2="16" y2="6" />
+                    <line x1="8" y1="2" x2="8" y2="6" />
+                    <line x1="3" y1="10" x2="21" y2="10" />
+                  </svg>
+                  <span>Calendar (.ics)</span>
+                </button>
+              </div>
+            </div>
+
             <ChatView
               messages={messages}
               isLoading={isLoading}
@@ -221,11 +365,21 @@ function MainApp() {
               matterTitle={currentMatter?.title}
               onSend={handleSend}
               onClearChat={() => setMessages([])}
+              onSelectSource={setActiveCitationSource}
+              onRequestApproval={requestApproval}
             />
           </div>
 
-          {/* Right Sidebar (AI Intelligence) */}
-          <IntelligenceSidebar matterId={selectedMatter} />
+          {/* Right Sidebar (AI Coworkers & Notebook Guide) */}
+          <IntelligenceSidebar
+            matterId={selectedMatter}
+            matterTitle={currentMatter?.title}
+            onRequestApproval={requestApproval}
+            onOutcomeGenerated={(out) => {
+              addToast(`Coworker "${out.coworker_name}" completed task!`, "success");
+            }}
+            onExportWord={() => handleExportWord()}
+          />
         </div>
       )}
 
@@ -246,6 +400,44 @@ function MainApp() {
           }}
         />
       )}
+
+      {/* Interactive Citation Viewer Modal */}
+      <CitationViewerModal
+        source={activeCitationSource}
+        onClose={() => setActiveCitationSource(null)}
+      />
+
+      {/* Global Command Palette */}
+      <CommandPalette
+        isOpen={showCommandPalette}
+        onClose={() => setShowCommandPalette(false)}
+        matters={matters}
+        coworkers={coworkers}
+        currentMatterId={selectedMatter}
+        onSelectMatter={setSelectedMatter}
+        onOpenNewMatter={() => {
+          setSelectedMatter(null);
+        }}
+        onOpenUpload={() => setShowUpload(true)}
+        onOpenGlobalSearch={() => setShowCommandPalette(true)}
+        onOpenCoworkers={() => {}}
+        onExportCalendar={handleExportCalendar}
+        onExportWord={handleExportWord}
+      />
+
+      {/* Human-in-the-Loop Action Approval Gate (OpenWorker Protocol) */}
+      <ApprovalModal
+        isOpen={!!approvalGate?.isOpen}
+        title={approvalGate?.title || "Action Approval Gate"}
+        actionDescription={approvalGate?.actionDescription || ""}
+        dataScope={approvalGate?.dataScope}
+        onApprove={() => {
+          const fn = approvalGate?.onApprove;
+          setApprovalGate(null);
+          fn?.();
+        }}
+        onCancel={() => setApprovalGate(null)}
+      />
     </div>
   );
 }

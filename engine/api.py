@@ -25,7 +25,7 @@ from fastapi import (
     HTTPException, Depends, status
 )
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -40,6 +40,8 @@ import store
 import users as user_store
 import auth as auth_module
 import license_client
+import coworkers
+import web_search
 
 # ── Rate limiter ────────────────────────────────────────────────────────────────
 limiter = Limiter(key_func=get_remote_address)
@@ -94,12 +96,18 @@ class SetupWorkspace(BaseModel):
     admin_name: str
     admin_username: str
     master_password: str
+    vertical: str = "generic"
 
 class QueryRequest(BaseModel):
     query: str
     matter_id: Optional[str] = None
     force_cloud: bool = False
     use_heavy: bool = False
+
+class GlobalSearchRequest(BaseModel):
+    query: str
+    doc_type: Optional[str] = None
+    limit: int = 10
 
 class UserCreate(BaseModel):
     username: str
@@ -116,6 +124,37 @@ class PasswordChange(BaseModel):
 class MatterCreate(BaseModel):
     title: str
     description: str = ""
+    tags: Optional[list[str]] = None
+
+class MatterTagsUpdate(BaseModel):
+    tags: list[str]
+
+class DocCompareRequest(BaseModel):
+    doc1: str
+    doc2: str
+    focus: Optional[str] = None
+
+class WebVerifyRequest(BaseModel):
+    query: str
+
+class CoworkerRunRequest(BaseModel):
+    coworker_id: str
+    custom_instruction: Optional[str] = None
+    force_cloud: bool = False
+    use_heavy: bool = False
+
+class CustomCoworkerCreate(BaseModel):
+    id: Optional[str] = None
+    name: str
+    role: str
+    description: str
+    icon: str = "sparkles"
+    vertical: str = "all"
+    system_prompt: str
+    default_query: str
+
+class CoworkerImportRequest(BaseModel):
+    bundle: dict
 
 class ErrorResponse(BaseModel):
     detail: str
@@ -158,8 +197,8 @@ def health():
     return {
         "status": "ok",
         "version": "1.0.0",
-        "app": "law-assist",
-        "vertical": config.VERTICAL,
+        "app": "ProAssist",
+        "vertical": user_store.get_workspace_vertical() if user_store.is_workspace_initialized() else config.VERTICAL,
         "llm_backend": config.LLM_BACKEND,
         "license": lic,
     }
@@ -183,7 +222,7 @@ def setup_workspace(body: SetupWorkspace):
         raise HTTPException(status_code=422, detail="Firm name cannot be empty")
     if len(body.master_password) < 8:
         raise HTTPException(status_code=422, detail="Password must be at least 8 characters")
-    user = user_store.create_workspace(body.admin_name, body.admin_username, body.master_password)
+    user = user_store.create_workspace(body.admin_name, body.admin_username, body.master_password, body.vertical)
     return {"status": "ok", "admin": user}
 
 @app.get("/auth/profiles")
@@ -300,6 +339,338 @@ def get_matter_intelligence(
         raise HTTPException(status_code=500, detail=f"Failed to extract intelligence: {e}")
 
 
+@app.get("/matters/{matter_id}/executive-brief")
+def get_matter_executive_brief(
+    matter_id: str,
+    current_user: dict = Depends(auth_module.get_current_user),
+):
+    if not user_store.can_access_matter(current_user, matter_id):
+        raise HTTPException(status_code=403, detail="No access to this matter")
+
+    cached = user_store.get_matter_executive_brief(matter_id)
+    if cached:
+        return cached
+
+    try:
+        data = agent.generate_executive_brief(matter_id)
+        return data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to generate executive brief: {e}")
+
+
+@app.get("/matters/{matter_id}/export")
+def export_matter_report(
+    matter_id: str,
+    current_user: dict = Depends(auth_module.get_current_user),
+):
+    if not user_store.can_access_matter(current_user, matter_id):
+        raise HTTPException(status_code=403, detail="No access to this matter")
+    try:
+        import exporter
+        docx_bytes = exporter.generate_matter_docx(matter_id, current_user)
+        matters = user_store.list_user_matters(current_user)
+        current_m = next((m for m in matters if m["id"] == matter_id), None)
+        title = current_m["title"] if current_m else f"Matter_{matter_id}"
+        safe_title = "".join(c for c in title if c.isalnum() or c in (" ", "_", "-")).strip().replace(" ", "_")
+        filename = f"{safe_title}_Brief.docx"
+        return Response(
+            content=docx_bytes,
+            media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to export report: {e}")
+
+
+def _generate_matter_ics(matter_id: str, matter_title: str) -> str:
+    from datetime import datetime, timezone
+    now_str = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    
+    # Check intelligence or timeline
+    intel = user_store.get_matter_intelligence(matter_id) or {}
+    timeline = intel.get("timeline", [])
+    
+    lines = [
+        "BEGIN:VCALENDAR",
+        "VERSION:2.0",
+        "PRODID:-//ProAssist//Matter Deadlines Calendar//EN",
+        "CALSCALE:GREGORIAN",
+        "METHOD:PUBLISH",
+        f"X-WR-CALNAME:ProAssist - {matter_title}",
+    ]
+    
+    import re
+    date_regex = re.compile(r'(\d{4})[-/](\d{1,2})[-/](\d{1,2})')
+    
+    count = 0
+    for item in timeline:
+        raw_date = str(item.get("date", "")).strip()
+        event_desc = str(item.get("event", "Matter Milestone")).strip()
+        m = date_regex.search(raw_date)
+        if m:
+            yyyy, mm, dd = m.group(1), m.group(2).zfill(2), m.group(3).zfill(2)
+            dt_val = f"{yyyy}{mm}{dd}"
+        else:
+            dt_val = datetime.now().strftime("%Y%m%d")
+            event_desc = f"[{raw_date}] {event_desc}"
+            
+        uid = f"proassist-{matter_id}-{count}-{dt_val}@local"
+        clean_summary = event_desc[:60].replace("\n", " ").replace(",", "\\,")
+        clean_desc = event_desc.replace("\n", " ").replace(",", "\\,")
+        lines.extend([
+            "BEGIN:VEVENT",
+            f"UID:{uid}",
+            f"DTSTAMP:{now_str}",
+            f"DTSTART;VALUE=DATE:{dt_val}",
+            f"SUMMARY:{clean_summary}",
+            f"DESCRIPTION:{clean_desc}",
+            f"CATEGORIES:LEGAL,DEADLINE,{matter_title}",
+            "STATUS:CONFIRMED",
+            "END:VEVENT",
+        ])
+        count += 1
+        
+    if count == 0:
+        today_val = datetime.now().strftime("%Y%m%d")
+        lines.extend([
+            "BEGIN:VEVENT",
+            f"UID:proassist-{matter_id}-init@local",
+            f"DTSTAMP:{now_str}",
+            f"DTSTART;VALUE=DATE:{today_val}",
+            f"SUMMARY:Matter Initialized - {matter_title}",
+            f"DESCRIPTION:Matter dossier {matter_id} active in ProAssist.",
+            "END:VEVENT",
+        ])
+        
+    lines.append("END:VCALENDAR")
+    return "\r\n".join(lines) + "\r\n"
+
+
+@app.get("/matters/{matter_id}/calendar.ics")
+def get_matter_calendar(
+    matter_id: str,
+    current_user: dict = Depends(auth_module.get_current_user),
+):
+    if not user_store.can_access_matter(current_user, matter_id):
+        raise HTTPException(status_code=403, detail="No access to this matter")
+    matters = user_store.list_user_matters(current_user)
+    current_m = next((m for m in matters if m["id"] == matter_id), None)
+    title = current_m["title"] if current_m else f"Matter {matter_id}"
+    ics_text = _generate_matter_ics(matter_id, title)
+    return Response(
+        content=ics_text,
+        media_type="text/calendar",
+        headers={"Content-Disposition": f'attachment; filename="proassist_{matter_id}_deadlines.ics"'}
+    )
+
+
+@app.post("/matters/{matter_id}/compare-docs")
+def compare_matter_documents(
+    matter_id: str,
+    req: DocCompareRequest,
+    current_user: dict = Depends(auth_module.get_current_user),
+):
+    if not user_store.can_access_matter(current_user, matter_id):
+        raise HTTPException(status_code=403, detail="No access to this matter")
+    with store.get_db_context() as db:
+        chunks1 = store.get_file_chunks(db, matter_id, req.doc1, max_chunks=15)
+        chunks2 = store.get_file_chunks(db, matter_id, req.doc2, max_chunks=15)
+        
+    if not chunks1 and not chunks2:
+        raise HTTPException(status_code=404, detail="Neither document was found in this matter.")
+    if not chunks1:
+        raise HTTPException(status_code=404, detail=f"Document '{req.doc1}' has no indexed chunks.")
+    if not chunks2:
+        raise HTTPException(status_code=404, detail=f"Document '{req.doc2}' has no indexed chunks.")
+        
+    text1 = "\n\n".join([f"[{req.doc1} P.{c.get('page','?')}] {c['chunk_text']}" for c in chunks1])[:6000]
+    text2 = "\n\n".join([f"[{req.doc2} P.{c.get('page','?')}] {c['chunk_text']}" for c in chunks2])[:6000]
+    
+    system_prompt = (
+        "You are an expert Comparative Document and Redline Specialist. Compare the two document excerpts below. "
+        "Highlight newly added clauses, deleted conditions/obligations, modified clauses, and legal/business risk differences.\n"
+        "You MUST respond ONLY with a valid JSON object with the following schema:\n"
+        "{\n"
+        '  "summary": "Brief executive summary of key differences between the documents",\n'
+        '  "additions": ["Clauses or terms in Doc 2 that are missing in Doc 1", ...],\n'
+        '  "deletions": ["Clauses or terms in Doc 1 that were dropped or removed in Doc 2", ...],\n'
+        '  "modifications": [{"clause": "Topic/Clause name", "doc1_version": "Summary of Doc 1 version", "doc2_version": "Summary of Doc 2 version", "risk_impact": "Impact/shift in liability"}],\n'
+        '  "risk_assessment": "Overall assessment of which version is more favorable and key red flags"\n'
+        "}"
+    )
+    user_prompt = f"### DOCUMENT 1 ({req.doc1}):\n{text1}\n\n### DOCUMENT 2 ({req.doc2}):\n{text2}\n"
+    if req.focus:
+        user_prompt += f"\nSpecific comparison focus: {req.focus}\n"
+        
+    import llm
+    try:
+        response, backend = llm.generate_with_fallback(system_prompt, user_prompt, prefer_cloud=True)
+        data = agent._safe_json_loads(response)
+        return {
+            "matter_id": matter_id,
+            "doc1": req.doc1,
+            "doc2": req.doc2,
+            "comparison": data,
+            "backend": backend,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Document comparison failed: {e}")
+
+
+@app.post("/matters/{matter_id}/web-verify")
+def web_verify_endpoint(
+    matter_id: str,
+    req: WebVerifyRequest,
+    current_user: dict = Depends(auth_module.get_current_user),
+):
+    if not user_store.can_access_matter(current_user, matter_id):
+        raise HTTPException(status_code=403, detail="No access to this matter")
+    
+    if not req.query.strip():
+        raise HTTPException(status_code=422, detail="Search query cannot be empty")
+        
+    res = web_search.search_web(req.query)
+    return res
+
+
+@app.post("/search/global")
+def global_search(
+    req: GlobalSearchRequest,
+    current_user: dict = Depends(auth_module.get_current_user),
+):
+    if not req.query.strip():
+        raise HTTPException(status_code=422, detail="Query cannot be empty")
+    try:
+        import retrieve as retriever
+        chunks = retriever.retrieve(query=req.query, matter_id=None, doc_type=req.doc_type, top_k=req.limit)
+        return {"query": req.query, "doc_type": req.doc_type, "results": chunks}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Global search error: {e}")
+
+
+# ── OpenWorker Autonomous Coworker Endpoints ──────────────────────────────────
+
+@app.get("/coworkers")
+def list_coworkers_endpoint(
+    vertical: Optional[str] = None,
+    current_user: dict = Depends(auth_module.get_current_user),
+):
+    """List available built-in and custom Coworkers."""
+    if not vertical:
+        vertical = user_store.get_workspace_vertical()
+    items = coworkers.list_coworkers(vertical=vertical)
+    return {"coworkers": items, "workspace_vertical": vertical}
+
+
+@app.get("/coworkers/{coworker_id}")
+def get_coworker_detail(
+    coworker_id: str,
+    current_user: dict = Depends(auth_module.get_current_user),
+):
+    """Get single coworker profile."""
+    item = coworkers.get_coworker(coworker_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="Coworker not found")
+    return {"coworker": item}
+
+
+@app.post("/matters/{matter_id}/coworker")
+def run_matter_coworker(
+    matter_id: str,
+    req: CoworkerRunRequest,
+    current_user: dict = Depends(auth_module.get_current_user),
+):
+    """Executes an autonomous Coworker workflow against a matter dossier."""
+    if not user_store.can_access_matter(current_user, matter_id):
+        raise HTTPException(status_code=403, detail="No access to this matter")
+
+    try:
+        outcome = coworkers.run_coworker(
+            coworker_id=req.coworker_id,
+            matter_id=matter_id,
+            custom_instruction=req.custom_instruction,
+            force_cloud=req.force_cloud,
+            use_heavy=req.use_heavy,
+        )
+
+        # Log formatted summary into matter chat history
+        chat_entry = f"### {outcome.get('title', 'Coworker Execution Report')}\n\n{outcome.get('markdown_memo') or outcome.get('summary', '')}"
+        try:
+            with store.get_db_context() as db:
+                store.save_chat_message(db, matter_id, current_user["id"], "assistant", chat_entry)
+        except Exception:
+            pass
+
+        return outcome
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Coworker execution failed: {e}")
+
+
+@app.post("/coworkers/custom")
+def create_custom_coworker(
+    body: CustomCoworkerCreate,
+    current_user: dict = Depends(auth_module.get_current_user),
+):
+    """Create or update a custom Coworker."""
+    try:
+        cid = body.id or f"custom_{uuid.uuid4().hex[:8]}"
+        saved = user_store.save_custom_coworker(
+            coworker_id=cid,
+            name=body.name,
+            role=body.role,
+            description=body.description,
+            icon=body.icon,
+            vertical=body.vertical,
+            system_prompt=body.system_prompt,
+            default_query=body.default_query,
+            user_id=current_user["id"],
+        )
+        return {"coworker": saved}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to save custom coworker: {e}")
+
+
+@app.delete("/coworkers/custom/{coworker_id}")
+def delete_custom_coworker(
+    coworker_id: str,
+    current_user: dict = Depends(auth_module.get_current_user),
+):
+    """Delete a custom Coworker."""
+    success = user_store.delete_custom_coworker(coworker_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Custom coworker not found or cannot be deleted")
+    return {"deleted": True, "id": coworker_id}
+
+
+@app.get("/coworkers/{coworker_id}/export")
+def export_coworker_bundle(
+    coworker_id: str,
+    current_user: dict = Depends(auth_module.get_current_user),
+):
+    """Export coworker definition as an OpenWorker-compatible portable bundle."""
+    try:
+        bundle = coworkers.export_bundle(coworker_id)
+        return bundle
+    except Exception as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@app.post("/coworkers/import")
+def import_coworker_bundle(
+    body: CoworkerImportRequest,
+    current_user: dict = Depends(auth_module.get_current_user),
+):
+    """Import a portable Coworker bundle (.bundle.json)."""
+    try:
+        imported = coworkers.import_bundle(body.bundle, user_id=current_user["id"])
+        return {"imported": True, "coworker": imported}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Import failed: {e}")
+
+
+
 # ── Document ingestion ─────────────────────────────────────────────────────────
 
 @app.post("/ingest/file")
@@ -392,8 +763,20 @@ def create_matter(body: MatterCreate, current_user: dict = Depends(auth_module.g
     if not body.title.strip():
         raise HTTPException(status_code=422, detail="Matter title cannot be empty")
     matter_id = str(uuid.uuid4())[:8]
-    user_store.create_matter(matter_id, body.title, body.description, current_user["id"])
-    return {"id": matter_id, "title": body.title, "description": body.description}
+    user_store.create_matter(matter_id, body.title, body.description, current_user["id"], tags=body.tags)
+    return {"id": matter_id, "title": body.title, "description": body.description, "tags": body.tags or []}
+
+@app.patch("/matters/{matter_id}/tags")
+@app.post("/matters/{matter_id}/tags")
+def update_matter_tags_endpoint(
+    matter_id: str,
+    body: MatterTagsUpdate,
+    current_user: dict = Depends(auth_module.get_current_user),
+):
+    if not user_store.can_access_matter(current_user, matter_id):
+        raise HTTPException(status_code=403, detail="No access to this matter")
+    updated = user_store.update_matter_tags(matter_id, body.tags)
+    return {"matter_id": matter_id, "tags": updated}
 
 @app.get("/matters/{matter_id}/files")
 def list_files(
@@ -406,11 +789,11 @@ def list_files(
         files = store.matter_files(db, matter_id)
     return {"matter_id": matter_id, "files": files}
 
-@app.delete("/matters/{matter_id}/files/{filename}")
+@app.delete("/matters/{matter_id}/files/{filename:path}")
 def delete_file(
     matter_id: str,
     filename: str,
-    current_user: dict = Depends(auth_module.require_role("admin", "senior_partner")),
+    current_user: dict = Depends(auth_module.require_role("admin", "senior_partner", "senior")),
 ):
     with store.get_db_context() as db:
         removed = store.delete_file(db, matter_id, filename)
@@ -421,14 +804,14 @@ def delete_file(
 
 @app.get("/users")
 def get_users(
-    current_user: dict = Depends(auth_module.require_role("admin", "senior_partner")),
+    current_user: dict = Depends(auth_module.require_role("admin", "senior_partner", "senior")),
 ):
     return {"users": user_store.list_users()}
 
 @app.post("/users")
 def create_user(
     body: UserCreate,
-    current_user: dict = Depends(auth_module.require_role("admin", "senior_partner")),
+    current_user: dict = Depends(auth_module.require_role("admin", "senior_partner", "senior")),
 ):
     info = license_client.validate()
     existing = len(user_store.list_users())

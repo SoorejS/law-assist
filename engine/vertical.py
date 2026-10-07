@@ -8,6 +8,7 @@ from functools import lru_cache
 
 import yaml
 import config
+import users
 
 _DEFAULT_SYSTEM_PROMPT = """You are a document assistant. Answer ONLY from the provided document excerpts.
 Cite every fact with: [Source: filename, Page X].
@@ -15,13 +16,18 @@ If not found in excerpts, say: "I could not find that in your documents."
 Do not use any knowledge outside these excerpts."""
 
 
-@lru_cache(maxsize=1)
 def load_vertical(vertical: str = None) -> dict:
-    vertical = vertical or config.VERTICAL
+    if vertical is None:
+        vertical = users.get_workspace_vertical()
+    return _load_vertical_cached(vertical)
+
+
+@lru_cache(maxsize=16)
+def _load_vertical_cached(vertical: str) -> dict:
     yaml_path = config.VERTICALS_DIR / f"{vertical}.yaml"
     if not yaml_path.exists():
         yaml_path = config.VERTICALS_DIR / "generic.yaml"
-    with open(yaml_path, "r") as f:
+    with open(yaml_path, "r", encoding="utf-8") as f:
         data = yaml.safe_load(f)
     return data
 

@@ -116,9 +116,10 @@ def vector_search(
     query_embedding: list[float],
     top_k: int = None,
     matter_id: Optional[str] = None,
+    doc_type: Optional[str] = None,
 ) -> list[dict]:
     top_k = top_k or config.TOP_K
-    fetch_k = top_k * 4 if matter_id else top_k
+    fetch_k = max(top_k * 25, 250) if (matter_id or doc_type) else top_k
 
     rows = db.execute(
         """
@@ -145,6 +146,10 @@ def vector_search(
         sql += " AND matter_id = ?"
         params.append(matter_id)
 
+    if doc_type:
+        sql += " AND doc_type = ?"
+        params.append(doc_type)
+
     chunks = db.execute(sql, params).fetchall()
 
     results = []
@@ -161,6 +166,7 @@ def keyword_search(
     query: str,
     top_k: int = None,
     matter_id: Optional[str] = None,
+    doc_type: Optional[str] = None,
 ) -> list[dict]:
     top_k = top_k or config.KEYWORD_TOP_K
     terms = [t for t in query.lower().split() if len(t) > 3]
@@ -174,6 +180,9 @@ def keyword_search(
     if matter_id:
         sql += " AND matter_id = ?"
         params.append(matter_id)
+    if doc_type:
+        sql += " AND doc_type = ?"
+        params.append(doc_type)
     sql += f" LIMIT {top_k * 2}"
 
     rows = db.execute(sql, params).fetchall()
@@ -266,3 +275,13 @@ def get_chat_history(db: sqlite3.Connection, matter_id: str, user_id: int) -> li
         (matter_id, user_id)
     ).fetchall()
     return [dict(r) for r in rows]
+
+
+def get_file_chunks(db: sqlite3.Connection, matter_id: str, source_file: str, max_chunks: int = 25) -> list[dict]:
+    rows = db.execute(
+        """SELECT * FROM chunks WHERE matter_id = ? AND source_file = ?
+           ORDER BY page ASC, id ASC LIMIT ?""",
+        (matter_id, source_file, max_chunks),
+    ).fetchall()
+    return [_row_to_dict(r, 0.0) for r in rows]
+

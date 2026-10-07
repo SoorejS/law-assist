@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import type { Message } from "../lib/types";
+import type { Message, Source } from "../lib/types";
 import { MessageBubble, TypingIndicator } from "./MessageBubble";
 
 interface Props {
@@ -9,6 +9,13 @@ interface Props {
   matterTitle?: string;
   onSend: (query: string, forceCloud: boolean) => void;
   onClearChat?: () => void;
+  onSelectSource?: (source: Source) => void;
+  onRequestApproval?: (opts: {
+    title: string;
+    actionDescription: string;
+    dataScope?: string;
+    onApprove: () => void;
+  }) => void;
 }
 
 const SAMPLE_QUERIES = [
@@ -19,7 +26,16 @@ const SAMPLE_QUERIES = [
   "Find all evidence related to [person]",
 ];
 
-export function ChatView({ messages, isLoading, selectedFolder, matterTitle, onSend, onClearChat }: Props) {
+export function ChatView({
+  messages,
+  isLoading,
+  selectedFolder,
+  matterTitle,
+  onSend,
+  onClearChat,
+  onSelectSource,
+  onRequestApproval,
+}: Props) {
   const [input, setInput] = useState("");
   const [forceCloud, setForceCloud] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -38,12 +54,39 @@ export function ChatView({ messages, isLoading, selectedFolder, matterTitle, onS
     ta.style.height = Math.min(ta.scrollHeight, 140) + "px";
   }, [input]);
 
+  const toggleCloud = () => {
+    if (!forceCloud && onRequestApproval) {
+      onRequestApproval({
+        title: "Enable Cloud AI Escalation",
+        actionDescription: "Switching to Cloud AI mode allows deep reasoning models to assist with complex synthesis. All PAN, Aadhaar, phone numbers, and emails are automatically scrubbed locally by the offline PII filter before transmission.",
+        dataScope: `Matter: ${matterTitle || selectedFolder || "Active Dossier"}`,
+        onApprove: () => setForceCloud(true),
+      });
+    } else {
+      setForceCloud(false);
+    }
+  };
+
   const handleSend = useCallback(() => {
     const q = input.trim();
     if (!q || isLoading) return;
+
+    if (forceCloud && onRequestApproval) {
+      onRequestApproval({
+        title: "Cloud AI Query Gate",
+        actionDescription: `Your query will be sent to the cloud AI with document excerpts. All sensitive identifiers will be redacted locally before transmission.`,
+        dataScope: `Query: "${q.slice(0, 80)}${q.length > 80 ? "..." : ""}"`,
+        onApprove: () => {
+          onSend(q, true);
+          setInput("");
+        },
+      });
+      return;
+    }
+
     onSend(q, forceCloud);
     setInput("");
-  }, [input, isLoading, forceCloud, onSend]);
+  }, [input, isLoading, forceCloud, onSend, onRequestApproval, matterTitle, selectedFolder]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -85,7 +128,16 @@ export function ChatView({ messages, isLoading, selectedFolder, matterTitle, onS
         ) : (
           <>
             {messages.map((m) => (
-              <MessageBubble key={m.id} message={m} />
+              <MessageBubble
+                key={m.id}
+                message={m}
+                onSelectSource={onSelectSource}
+                onSelectFollowUp={(q) => {
+                  if (!isLoading) {
+                    onSend(q, forceCloud);
+                  }
+                }}
+              />
             ))}
             {isLoading && <TypingIndicator />}
           </>
@@ -110,7 +162,7 @@ export function ChatView({ messages, isLoading, selectedFolder, matterTitle, onS
 
           {/* Cloud toggle */}
           <button
-            onClick={() => setForceCloud((v) => !v)}
+            onClick={toggleCloud}
             title={forceCloud ? "Using cloud AI (click to switch to local)" : "Using local AI (click to force cloud)"}
             className={`flex-shrink-0 p-2.5 rounded-xl border transition-colors ${
               forceCloud
