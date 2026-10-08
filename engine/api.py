@@ -17,6 +17,7 @@ import shutil
 import secrets
 import tempfile
 import uuid
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Optional
 
@@ -50,17 +51,9 @@ import llm
 # ── Rate limiter ────────────────────────────────────────────────────────────────
 limiter = Limiter(key_func=get_remote_address)
 
-app = FastAPI(
-    title="law-assist Engine",
-    version="1.0.0",
-    description="Private Legal Intelligence Platform — Local Offline AI Workstation",
-)
-app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-
-@app.on_event("startup")
-async def on_startup():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     import threading
     try:
         threading.Thread(
@@ -71,6 +64,39 @@ async def on_startup():
         ).start()
     except Exception as e:
         print(f"[api] warmup launch skipped: {e}")
+
+    # Security hardening on first launch
+    env_path = Path(__file__).parent / ".env"
+    if config.JWT_SECRET == "change_this_secret":
+        new_secret = secrets.token_hex(32)
+        lines = []
+        replaced = False
+        if env_path.exists():
+            with open(env_path, "r") as f:
+                lines = f.readlines()
+            for i, line in enumerate(lines):
+                if line.startswith("JWT_SECRET="):
+                    lines[i] = f"JWT_SECRET={new_secret}\n"
+                    replaced = True
+                    break
+        if not replaced:
+            lines.append(f"\nJWT_SECRET={new_secret}\n")
+        with open(env_path, "w") as f:
+            f.writelines(lines)
+        config.JWT_SECRET = new_secret
+        print("[law-assist] WARNING: Generated a new secure JWT_SECRET. Restart required for full effect.")
+
+    yield
+
+
+app = FastAPI(
+    title="law-assist Engine",
+    version="1.0.0",
+    description="Private Legal Intelligence Platform — Local Offline AI Workstation",
+    lifespan=lifespan,
+)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore
 
 
 # ── CORS — restricted to known local origins ────────────────────────────────────
@@ -178,34 +204,6 @@ class CoworkerImportRequest(BaseModel):
 class ErrorResponse(BaseModel):
     detail: str
     code: Optional[str] = None
-
-
-# ── Startup: auto-generate JWT secret if default ────────────────────────────────
-
-@app.on_event("startup")
-async def startup_event():
-    """Security hardening on first launch."""
-    env_path = Path(__file__).parent / ".env"
-    if config.JWT_SECRET == "change_this_secret":
-        new_secret = secrets.token_hex(32)
-        # Read existing .env, update or append JWT_SECRET
-        lines = []
-        replaced = False
-        if env_path.exists():
-            with open(env_path, "r") as f:
-                lines = f.readlines()
-            for i, line in enumerate(lines):
-                if line.startswith("JWT_SECRET="):
-                    lines[i] = f"JWT_SECRET={new_secret}\n"
-                    replaced = True
-                    break
-        if not replaced:
-            lines.append(f"\nJWT_SECRET={new_secret}\n")
-        with open(env_path, "w") as f:
-            f.writelines(lines)
-        # Update in-memory value
-        config.JWT_SECRET = new_secret
-        print("[law-assist] WARNING: Generated a new secure JWT_SECRET. Restart required for full effect.")
 
 
 # ── Health & system ────────────────────────────────────────────────────────────

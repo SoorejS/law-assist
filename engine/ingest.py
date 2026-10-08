@@ -91,7 +91,7 @@ def extract_pdf(file_path: str) -> list[dict]:
     failed_pages = []
     for i, page in enumerate(doc, start=1):
         try:
-            text = page.get_text("text").strip()
+            text = str(page.get_text("text")).strip()
             if text and len(text) > 10:  # skip near-empty pages (headers/footers only)
                 pages.append({"page": i, "text": text, "section": None})
         except Exception:
@@ -132,7 +132,7 @@ def extract_docx(file_path: str) -> list[dict]:
         text = para.text.strip()
         if not text:
             continue
-        if para.style.name.startswith("Heading"):
+        if para.style and para.style.name and para.style.name.startswith("Heading"):
             if buffer:
                 pages.append({"page": pseudo_page, "text": "\n".join(buffer), "section": current_section})
                 pseudo_page += 1
@@ -174,7 +174,7 @@ def extract_csv(file_path: str) -> list[dict]:
                 except UnicodeDecodeError:
                     continue
             else:
-                df = pd.read_csv(file_path, encoding="utf-8", errors="replace")
+                df = pd.read_csv(file_path, encoding="utf-8", encoding_errors="replace")
     except Exception as e:
         raise ValueError(f"Could not read spreadsheet file: {e}")
 
@@ -242,7 +242,7 @@ def extract(file_path: str) -> list[dict]:
 
 # ── Chunking ────────────────────────────────────────────────────────────────────
 
-def chunk_text(text: str, size: int = None, overlap: int = None) -> list[str]:
+def chunk_text(text: str, size: Optional[int] = None, overlap: Optional[int] = None) -> list[str]:
     size = size or config.CHUNK_SIZE_WORDS
     overlap = overlap or config.CHUNK_OVERLAP_WORDS
     words = text.split()

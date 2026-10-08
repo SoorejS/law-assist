@@ -14,7 +14,7 @@ import config
 import users as user_store
 
 try:
-    from jose import JWTError, jwt
+    from jose import JWTError, jwt  # type: ignore
     JWT_AVAILABLE = True
 except ImportError:
     JWT_AVAILABLE = False
@@ -41,7 +41,7 @@ def decode_token(token: str) -> Optional[dict]:
     if not JWT_AVAILABLE:
         return None
     try:
-        return jwt.decode(token, config.JWT_SECRET, algorithms=[ALGORITHM])
+        return dict(jwt.decode(token, config.JWT_SECRET, algorithms=[ALGORITHM]))
     except JWTError:
         return None
 

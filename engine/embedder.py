@@ -14,7 +14,7 @@ _embedder_instance = None
 class Embedder:
     enabled = False  # Bypassed on Windows due to VC++ DLL collision
 
-    def __init__(self, model_name: str = None):
+    def __init__(self, model_name: str | None = None):
         model_name = model_name or config.EMBEDDING_MODEL
         print(f"[embedder] loading {model_name} (BYPASSED due to VC++ DLL error)…")
         print(f"[embedder] ready")

@@ -15,7 +15,7 @@ import os
 import json
 import re
 import threading
-from typing import Iterator
+from typing import Iterator, Optional, cast, Any
 import config
 import hardware
 
@@ -172,8 +172,8 @@ def _local_kwargs() -> dict:
 def local_generate(prompt: str) -> str:
     model = _get_local_model()
     with _infer_lock:
-        output = model(prompt, **_local_kwargs())
-    return output["choices"][0]["text"].strip()
+        output: Any = model(prompt, **_local_kwargs())
+    return str(output["choices"][0]["text"]).strip()
 
 
 def local_stream(prompt: str) -> Iterator[str]:
@@ -181,7 +181,8 @@ def local_stream(prompt: str) -> Iterator[str]:
     model = _get_local_model()
     with _infer_lock:
         for part in model(prompt, stream=True, **_local_kwargs()):
-            text = part["choices"][0].get("text", "")
+            part_dict: Any = part
+            text = part_dict["choices"][0].get("text", "")
             if text:
                 yield text
 
@@ -260,13 +261,13 @@ def anthropic_generate(system_prompt: str, user_prompt: str) -> str:
     import anthropic, privacy_filter
     user_prompt = privacy_filter.sanitize_text(user_prompt)
     client = anthropic.Anthropic(api_key=config.ANTHROPIC_API_KEY)
-    message = client.messages.create(
+    message: Any = client.messages.create(
         model=config.ANTHROPIC_MODEL,
         max_tokens=config.LOCAL_MODEL_MAX_TOKENS,
         system=system_prompt,
         messages=[{"role": "user", "content": user_prompt}],
     )
-    return message.content[0].text.strip()
+    return str(message.content[0].text).strip()
 
 
 def anthropic_stream(system_prompt: str, user_prompt: str) -> Iterator[str]:
@@ -290,7 +291,7 @@ def anthropic_stream(system_prompt: str, user_prompt: str) -> Iterator[str]:
 def generate(
     system_prompt: str,
     user_prompt: str,
-    backend: str = None,
+    backend: Optional[str] = None,
     use_heavy: bool = False,
 ) -> tuple[str, str]:
     """Returns (response_text, backend_used)."""
@@ -347,7 +348,7 @@ def generate_with_fallback(
 def stream(
     system_prompt: str,
     user_prompt: str,
-    backend: str = None,
+    backend: Optional[str] = None,
     use_heavy: bool = False,
 ) -> tuple[Iterator[str], str]:
     """Returns (token_iterator, backend_used)."""

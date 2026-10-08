@@ -11,7 +11,7 @@ if getattr(sys, 'frozen', False):
     PERSISTENT_DIR.mkdir(exist_ok=True)
     DATA_DIR = PERSISTENT_DIR / "data"
     MODELS_DIR = PERSISTENT_DIR / "models"
-    BASE_DIR = Path(sys._MEIPASS)
+    BASE_DIR = Path(getattr(sys, '_MEIPASS', ''))
 else:
     BASE_DIR = Path(__file__).parent
     DATA_DIR = BASE_DIR / "data"

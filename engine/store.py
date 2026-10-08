@@ -164,7 +164,7 @@ def insert_chunk(
         (chunk_id, _pack(embedding)),
     )
     db.commit()
-    return chunk_id
+    return int(chunk_id or 0)
 
 
 def insert_chunks_batch(
@@ -197,7 +197,7 @@ def insert_chunks_batch(
 def vector_search(
     db: sqlite3.Connection,
     query_embedding: list[float],
-    top_k: int = None,
+    top_k: Optional[int] = None,
     matter_id: Optional[str] = None,
     doc_type: Optional[str] = None,
 ) -> list[dict]:
@@ -269,7 +269,7 @@ def _query_terms(query: str) -> list[str]:
 def keyword_search(
     db: sqlite3.Connection,
     query: str,
-    top_k: int = None,
+    top_k: Optional[int] = None,
     matter_id: Optional[str] = None,
     doc_type: Optional[str] = None,
 ) -> list[dict]:

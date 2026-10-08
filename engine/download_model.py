@@ -71,7 +71,6 @@ def download(model_key: str) -> None:
             repo_id=entry["repo"],
             filename=entry["filename"],
             local_dir=str(MODELS_DIR),
-            local_dir_use_symlinks=False,
         )
         # Rename to standard model.gguf
         final = MODELS_DIR / entry["dest"]
