@@ -1,0 +1,11 @@
+{
+  "python.defaultInterpreterPath": "${workspaceFolder}/engine/.venv_312/Scripts/python.exe",
+  "python.analysis.extraPaths": [
+    "${workspaceFolder}/engine",
+    "${workspaceFolder}/engine/.venv_312/Lib/site-packages",
+    "${workspaceFolder}/engine/.venv/Lib/site-packages"
+  ],
+  "python.analysis.diagnosticSeverityOverrides": {
+    "reportMissingImports": "none"
+  }
+}

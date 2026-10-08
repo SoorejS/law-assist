@@ -128,7 +128,7 @@ def _get_local_model():
     with _load_lock:
         if _local_model is not None:
             return _local_model
-        from llama_cpp import Llama
+        from llama_cpp import Llama  # type: ignore
         if not os.path.exists(config.LOCAL_MODEL_PATH):
             raise FileNotFoundError(
                 f"Local model not found at {config.LOCAL_MODEL_PATH}.\n"
@@ -151,7 +151,7 @@ def _get_local_model():
             verbose=False,
         )
         try:
-            from llama_cpp import LlamaRAMCache
+            from llama_cpp import LlamaRAMCache  # type: ignore
             model.set_cache(LlamaRAMCache(capacity_bytes=prof.prompt_cache_bytes))
         except Exception as e:
             print(f"[llm] prompt cache disabled: {e}")

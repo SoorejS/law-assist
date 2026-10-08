@@ -13,15 +13,15 @@ ROOT_DIR = Path(__file__).parent.parent.resolve()
 sys.path.insert(0, str(ROOT_DIR / "engine"))
 
 from fastapi.testclient import TestClient
-import api
-import auth
-import users
-import store
-import exporter
-import coworkers
-import privacy_filter
-import web_search
-import agent
+import api  # type: ignore
+import auth  # type: ignore
+import users  # type: ignore
+import store  # type: ignore
+import exporter  # type: ignore
+import coworkers  # type: ignore
+import privacy_filter  # type: ignore
+import web_search  # type: ignore
+import agent  # type: ignore
 
 
 class ProAssistAuditTestCase(unittest.TestCase):
@@ -160,7 +160,7 @@ class ProAssistAuditTestCase(unittest.TestCase):
 
     def test_10_response_cache(self):
         """Verify document-fingerprinted LRU response cache eliminates repeated query latency."""
-        import cache
+        import cache  # type: ignore
         ckey = ("test query", "test_matter", False, False, "local", (1, 1))
         cache.answer_cache.put(ckey, {"answer": "Cached legal opinion", "sources": []})
         cached = cache.answer_cache.get(ckey)

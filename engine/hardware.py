@@ -114,7 +114,7 @@ def physical_cores() -> int:
 
 def gpu_offload_supported() -> bool:
     try:
-        from llama_cpp import llama_supports_gpu_offload
+        from llama_cpp import llama_supports_gpu_offload  # type: ignore
         return bool(llama_supports_gpu_offload())
     except Exception:
         return False

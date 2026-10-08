@@ -1,0 +1,12 @@
+{
+  "include": [
+    "engine",
+    "tests"
+  ],
+  "extraPaths": [
+    "engine",
+    "engine/.venv_312/Lib/site-packages",
+    "engine/.venv/Lib/site-packages"
+  ],
+  "reportMissingImports": "none"
+}
