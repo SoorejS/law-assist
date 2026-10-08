@@ -82,8 +82,7 @@ def download(model_key: str) -> None:
         print("\nManual download:")
         print(f"  pip install huggingface_hub")
         print(f"  huggingface-cli download {entry['repo']} {entry['filename']} --local-dir models/")
-        print(f"  mv models/{entry['filename']} models/model.gguf")
-        sys.exit(1)
+        raise RuntimeError(f"Download failed: {e}")
 
     # Update .env to use local backend
     env_path = Path(__file__).parent / ".env"

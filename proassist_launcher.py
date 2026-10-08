@@ -16,20 +16,31 @@ def main():
     if not engine_dir.exists():
         engine_dir = base_dir
         
-    venv_python = engine_dir / ".venv_312" / "Scripts" / "python.exe"
-    if venv_python.exists():
-        py_cmd = str(venv_python)
-    else:
-        py_cmd = "python"
-        
-    api_script = str(engine_dir / "api.py")
+    # Check for compiled standalone engine executable first
+    engine_exe_candidates = [
+        engine_dir / "law-assist-engine.exe",
+        base_dir / "law-assist-engine.exe",
+        base_dir / "build" / "engine_dist" / "law-assist-engine.exe",
+    ]
+    engine_exe = next((exe for exe in engine_exe_candidates if exe.exists()), None)
     
     CREATE_NO_WINDOW = 0x08000000
+    if engine_exe:
+        cmd = [str(engine_exe)]
+        cwd = str(engine_exe.parent)
+    else:
+        venv_python = engine_dir / ".venv_312" / "Scripts" / "python.exe"
+        if venv_python.exists():
+            py_cmd = str(venv_python)
+        else:
+            py_cmd = "python"
+        cmd = [py_cmd, str(engine_dir / "api.py")]
+        cwd = str(engine_dir)
+
     try:
-        subprocess.Popen([py_cmd, api_script], cwd=str(engine_dir), creationflags=CREATE_NO_WINDOW)
-    except Exception as e:
-        # Fallback without flag if on non-windows
-        subprocess.Popen([py_cmd, api_script], cwd=str(engine_dir))
+        subprocess.Popen(cmd, cwd=cwd, creationflags=CREATE_NO_WINDOW)
+    except Exception:
+        subprocess.Popen(cmd, cwd=cwd)
         
     # Wait for engine readiness
     for _ in range(12):

@@ -931,14 +931,31 @@ def check_update():
 
 # ── Serve built React UI ───────────────────────────────────────────────────────
 import sys
+_ui_dist = None
 if getattr(sys, 'frozen', False):
-    # PyInstaller bundle: sys.executable is the .exe path (e.g. C:\...\law-assist\engine\law-assist-engine.exe)
-    _ui_dist = Path(sys.executable).parent.parent / "ui"
+    # PyInstaller bundle mode
+    meipass = getattr(sys, '_MEIPASS', None)
+    candidates = [
+        Path(meipass) / "ui" if meipass else None,
+        Path(sys.executable).parent / "ui",
+        Path(sys.executable).parent / "dist",
+        Path(sys.executable).parent.parent / "ui",
+        Path(sys.executable).parent.parent / "ui" / "dist",
+    ]
 else:
     # Local dev mode
-    _ui_dist = Path(__file__).parent.parent / "ui" / "dist"
+    candidates = [
+        Path(__file__).parent.parent / "ui" / "dist",
+        Path(__file__).parent.parent / "ui",
+        Path(__file__).parent / "ui",
+    ]
 
-if _ui_dist.exists():
+for cand in candidates:
+    if cand and cand.exists() and (cand / "index.html").exists():
+        _ui_dist = cand
+        break
+
+if _ui_dist and _ui_dist.exists():
     app.mount("/", StaticFiles(directory=str(_ui_dist), html=True), name="ui")
 
 
@@ -948,12 +965,7 @@ if __name__ == "__main__":
     import uvicorn
 
     if not Path(config.LOCAL_MODEL_PATH).exists():
-        print("[law-assist] Model not found. Auto-downloading on first launch...")
-        try:
-            import download_model
-            download_model.download("qwen")
-        except Exception as e:
-            print(f"[law-assist] Auto-download failed: {e}")
+        print(f"[law-assist] Offline GGUF model not found at {config.LOCAL_MODEL_PATH}. Active backend: {config.LLM_BACKEND}")
 
     uvicorn.run(
         app,

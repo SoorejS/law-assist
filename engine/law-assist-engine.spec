@@ -1,9 +1,15 @@
 # -*- mode: python ; coding: utf-8 -*-
 from PyInstaller.utils.hooks import collect_all
 
-datas = [('verticals', 'verticals')]
+datas = [('verticals', 'verticals'), ('../ui/dist', 'ui')]
 binaries = []
-hiddenimports = ['sqlite_vec', 'jose', 'passlib.handlers.bcrypt', 'pymupdf', 'fitz', 'docx', 'pandas', 'openpyxl']
+hiddenimports = [
+    'config', 'agent', 'auth', 'cache', 'cli', 'coworkers', 'download_model',
+    'embedder', 'exporter', 'hardware', 'ingest', 'license_client', 'llm',
+    'privacy_filter', 'retrieve', 'store', 'users', 'vertical', 'web_search',
+    'sqlite_vec', 'jose', 'passlib.handlers.bcrypt', 'pymupdf', 'fitz',
+    'docx', 'pandas', 'openpyxl', 'slowapi', 'duckduckgo_search'
+]
 tmp_ret = collect_all('sqlite_vec')
 datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
 tmp_ret = collect_all('pymupdf')
@@ -16,11 +22,13 @@ tmp_ret = collect_all('openpyxl')
 datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
 tmp_ret = collect_all('llama_cpp')
 datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
+tmp_ret = collect_all('slowapi')
+datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
 
 
 a = Analysis(
     ['api.py'],
-    pathex=[],
+    pathex=['.'],
     binaries=binaries,
     datas=datas,
     hiddenimports=hiddenimports,

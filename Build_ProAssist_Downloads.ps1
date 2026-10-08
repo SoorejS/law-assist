@@ -16,20 +16,34 @@ if (Test-Path $TargetDir) {
 }
 New-Item -ItemType Directory -Force -Path $TargetDir | Out-Null
 
-# 1. Copy ProAssist.exe
-$ExeSource = Join-Path $SourceRoot "engine\dist\ProAssist.exe"
+# 1. Copy ProAssist.exe and ProAssist-Setup.exe
+$ExeSource = Join-Path $SourceRoot "build\launcher_dist\ProAssist.exe"
+if (-not (Test-Path $ExeSource)) {
+    $ExeSource = Join-Path $SourceRoot "engine\dist\ProAssist.exe"
+}
 if (Test-Path $ExeSource) {
     Copy-Item $ExeSource -Destination $TargetDir
-    # Also place a direct copy in Downloads root
     Copy-Item $ExeSource -Destination "$DownloadsDir\ProAssist.exe"
     Write-Host "[OK] ProAssist.exe copied to package and Downloads root" -ForegroundColor Green
 } else {
-    Write-Host "[WARN] ProAssist.exe not found in engine\dist" -ForegroundColor Red
+    Write-Host "[WARN] ProAssist.exe not found" -ForegroundColor Red
+}
+
+$SetupExe = Join-Path $SourceRoot "releases\ProAssist-Setup.exe"
+if (Test-Path $SetupExe) {
+    Copy-Item $SetupExe -Destination "$DownloadsDir\ProAssist-Setup.exe"
+    Write-Host "[OK] ProAssist-Setup.exe copied to Downloads root" -ForegroundColor Green
 }
 
 # 2. Setup engine directory
 $TargetEngine = Join-Path $TargetDir "engine"
 New-Item -ItemType Directory -Force -Path $TargetEngine | Out-Null
+
+$EngineExeSource = Join-Path $SourceRoot "build\engine_dist\law-assist-engine.exe"
+if (Test-Path $EngineExeSource) {
+    Copy-Item $EngineExeSource -Destination $TargetEngine
+    Write-Host "[OK] Standalone law-assist-engine.exe copied to package" -ForegroundColor Green
+}
 
 Copy-Item (Join-Path $SourceRoot "engine\*.py") -Destination $TargetEngine
 Copy-Item (Join-Path $SourceRoot "engine\requirements.txt") -Destination $TargetEngine
