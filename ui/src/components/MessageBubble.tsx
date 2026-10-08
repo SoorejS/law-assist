@@ -45,6 +45,15 @@ export function MessageBubble({ message, onSelectSource, onSelectFollowUp }: Pro
           }`}
         >
           {message.content}
+          {message.isStreaming && (
+            <span className="inline-block w-1.5 h-4 ml-1 bg-blue-400 animate-pulse align-middle" />
+          )}
+          {message.isStreaming && !message.content && (
+            <span className="text-[13px] text-blue-300/80 italic flex items-center gap-2 py-1">
+              <span className="inline-block w-2 h-2 rounded-full bg-blue-400 animate-ping" />
+              Retrieving statutory records & analyzing matter files...
+            </span>
+          )}
         </div>
 
         {/* Sources */}
@@ -99,7 +108,20 @@ export function MessageBubble({ message, onSelectSource, onSelectFollowUp }: Pro
         )}
 
         {/* Footer row */}
-        <div className="flex items-center gap-3 mt-2 px-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className={`flex items-center gap-2.5 mt-2 px-1 ${message.isStreaming ? "opacity-100" : "opacity-0 group-hover:opacity-100"} transition-opacity`}>
+          {message.cached && (
+            <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-cyan-950/60 text-cyan-300 border border-cyan-700/50">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+              </svg>
+              Instant Cache (0ms)
+            </span>
+          )}
+          {message.isStreaming && (
+            <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-blue-950/60 text-blue-300 border border-blue-700/50 animate-pulse">
+              Streaming...
+            </span>
+          )}
           {message.timing && (
             <>
               <BackendBadge backend={message.backend!} escalated={!!message.escalated} />

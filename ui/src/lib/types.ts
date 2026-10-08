@@ -25,6 +25,8 @@ export interface Message {
   timestamp: Date;
   isError?: boolean;
   follow_ups?: string[];
+  cached?: boolean;
+  isStreaming?: boolean;
 }
 
 export interface MatterInfo {
@@ -92,6 +94,7 @@ export interface QueryResponse {
   escalated: boolean;
   timing: Timing;
   follow_ups?: string[];
+  cached?: boolean;
 }
 
 export interface IntelligenceData {

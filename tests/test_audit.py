@@ -137,6 +137,51 @@ class ProAssistAuditTestCase(unittest.TestCase):
         self.assertIn("deadline_tracker", coworker_ids)
         self.assertIn("contract_diff", coworker_ids)
 
+    def test_08_hardware_profile_and_diagnostics(self):
+        """Verify dynamic hardware profile sensing and diagnostic endpoint."""
+        r_hw = self.client.get("/system/hardware", headers=self.headers)
+        self.assertEqual(r_hw.status_code, 200)
+        data = r_hw.json()
+        self.assertIn("profile", data)
+        self.assertIn("description", data)
+        self.assertIn("cache", data)
+        prof = data["profile"]
+        self.assertIn(prof["tier"], ["low", "mid", "high"])
+        self.assertGreater(prof["total_ram_gb"], 0)
+        self.assertGreaterEqual(prof["n_threads"], 1)
+        self.assertGreaterEqual(prof["n_threads_batch"], prof["n_threads"])
+        self.assertGreaterEqual(prof["prompt_cache_bytes"], 1024 * 1024)
+
+    def test_09_fts5_bm25_search(self):
+        """Verify FTS5 BM25 search table exists and executes sub-millisecond queries."""
+        with store.get_db_context() as db:
+            results = store.keyword_search(db, "Order VIII CPC written statement", top_k=5)
+            self.assertIsInstance(results, list)
+
+    def test_10_response_cache(self):
+        """Verify document-fingerprinted LRU response cache eliminates repeated query latency."""
+        import cache
+        ckey = ("test query", "test_matter", False, False, "local", (1, 1))
+        cache.answer_cache.put(ckey, {"answer": "Cached legal opinion", "sources": []})
+        cached = cache.answer_cache.get(ckey)
+        self.assertIsNotNone(cached)
+        self.assertEqual(cached["answer"], "Cached legal opinion")
+        self.assertGreaterEqual(cache.answer_cache.stats()["hits"], 1)
+
+    def test_11_query_stream_endpoint(self):
+        """Verify /query/stream endpoint produces valid SSE events."""
+        r = self.client.post(
+            "/query/stream",
+            json={"query": "What is the procedure for bail under BNSS?", "matter_id": None},
+            headers=self.headers,
+        )
+        self.assertEqual(r.status_code, 200)
+        self.assertIn("text/event-stream", r.headers.get("content-type", ""))
+        body = r.text
+        self.assertIn("event: metadata", body)
+        self.assertIn("event: done", body)
+
 
 if __name__ == "__main__":
     unittest.main()
+

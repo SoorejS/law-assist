@@ -337,18 +337,17 @@ def ingest_file(
         if chunks_to_insert:
             texts = [c[0] for c in chunks_to_insert]
             embeddings = embedder.encode_batch(texts, is_query=False)
-            for (chunk, page_num, section), embedding in zip(chunks_to_insert, embeddings):
-                store.insert_chunk(
-                    db=db,
-                    matter_id=matter_id,
-                    source_file=source_file,
-                    chunk_text=chunk,
-                    embedding=embedding,
-                    page=page_num,
-                    section=section,
-                    doc_type=doc_type,
-                )
-            chunks_added = len(chunks_to_insert)
+            batch_rows = [
+                (chunk, emb, page_num, section)
+                for (chunk, page_num, section), emb in zip(chunks_to_insert, embeddings)
+            ]
+            chunks_added = store.insert_chunks_batch(
+                db=db,
+                matter_id=matter_id,
+                source_file=source_file,
+                rows=batch_rows,
+                doc_type=doc_type,
+            )
         else:
             chunks_added = 0
 

@@ -19,11 +19,29 @@ def retrieve(
     Returns list of chunk dicts with distance scores.
     """
     top_k = top_k or config.TOP_K
+    embedder = get_embedder()
     with store.get_db_context() as db:
-        embedder = get_embedder()
-        query_vec = embedder.encode_query(query)
-        vec_results = store.vector_search(db, query_vec, top_k=top_k, matter_id=matter_id, doc_type=doc_type)
-        kw_results = store.keyword_search(db, query, top_k=config.KEYWORD_TOP_K, matter_id=matter_id, doc_type=doc_type)
+        if embedder.enabled:
+            query_vec = embedder.encode_query(query)
+            vec_results = store.vector_search(db, query_vec, top_k=top_k, matter_id=matter_id, doc_type=doc_type)
+            kw_k = config.KEYWORD_TOP_K
+        else:
+            # Avoid brute-force scanning identical dummy vectors
+            vec_results = []
+            kw_k = top_k
+
+        kw_results = store.keyword_search(db, query, top_k=kw_k, matter_id=matter_id, doc_type=doc_type)
+
+        # Ground broad queries (e.g. "summarize this case") in the opening pages of the documents
+        if matter_id and len(vec_results) + len(kw_results) < top_k and not embedder.enabled:
+            have_ids = {c["id"] for c in kw_results}
+            needed = top_k - len(kw_results)
+            kw_results += store.leading_chunks(db, matter_id, needed, exclude_ids=have_ids)
+
+    if not vec_results:
+        for c in kw_results:
+            c["rrf_score"] = 0.0
+        return kw_results[:top_k]
 
     # RRF (Reciprocal Rank Fusion) ranking
     rrf_k = 60
@@ -46,9 +64,7 @@ def retrieve(
     results = []
     for cid in sorted_ids[:top_k]:
         c = chunk_map[cid]
-        # Store computed RRF score and convert to normalized distance for threshold compatibility
         c["rrf_score"] = rrf_scores[cid]
-        # Keep original distance if vector match; otherwise assign synthetic distance from RRF rank
         results.append(c)
 
     return results

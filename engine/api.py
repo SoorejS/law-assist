@@ -25,7 +25,7 @@ from fastapi import (
     HTTPException, Depends, status
 )
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, Response
+from fastapi.responses import JSONResponse, Response, StreamingResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -42,6 +42,10 @@ import auth as auth_module
 import license_client
 import coworkers
 import web_search
+import hardware
+import cache
+import vertical
+import llm
 
 # ── Rate limiter ────────────────────────────────────────────────────────────────
 limiter = Limiter(key_func=get_remote_address)
@@ -53,6 +57,21 @@ app = FastAPI(
 )
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+
+@app.on_event("startup")
+async def on_startup():
+    import threading
+    try:
+        threading.Thread(
+            target=llm.warmup,
+            args=(vertical.get_system_prompt(),),
+            daemon=True,
+            name="llm-warmup",
+        ).start()
+    except Exception as e:
+        print(f"[api] warmup launch skipped: {e}")
+
 
 # ── CORS — restricted to known local origins ────────────────────────────────────
 ALLOWED_ORIGINS = [
@@ -307,6 +326,57 @@ async def query(
             pass  # Non-fatal: chat persistence failure should not break the response
 
     return result
+
+
+@app.post("/query/stream")
+@limiter.limit("20/minute")
+async def query_stream(
+    request: Request,
+    req: QueryRequest,
+    current_user: dict = Depends(auth_module.get_current_user),
+):
+    if not req.query.strip():
+        raise HTTPException(status_code=422, detail="Query cannot be empty")
+
+    if len(req.query) > 4000:
+        raise HTTPException(status_code=422, detail="Query too long (max 4000 characters)")
+
+    if req.matter_id and not user_store.can_access_matter(current_user, req.matter_id):
+        raise HTTPException(status_code=403, detail="You do not have access to this matter")
+
+    if req.force_cloud and not license_client.cloud_enabled():
+        raise HTTPException(
+            status_code=402,
+            detail="Cloud escalation requires an active license. Contact your administrator.",
+        )
+
+    generator = agent.stream_answer(
+        query=req.query,
+        matter_id=req.matter_id,
+        user_id=current_user["id"],
+        force_cloud=req.force_cloud,
+        use_heavy=req.use_heavy,
+    )
+    return StreamingResponse(
+        generator,
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
+
+
+@app.get("/system/hardware")
+def get_hardware_info(current_user: dict = Depends(auth_module.get_current_user)):
+    prof = hardware.get_profile()
+    return {
+        "profile": prof.as_dict(),
+        "description": hardware.describe(),
+        "cache": cache.answer_cache.stats(),
+    }
+
 
 @app.get("/matters/{matter_id}/chat")
 def get_chat(

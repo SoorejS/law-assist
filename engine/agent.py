@@ -13,13 +13,15 @@ Flow:
 from __future__ import annotations
 import time
 import re
-from typing import Optional
+import json
+from typing import Optional, Iterator
 
 import config
 import retrieve as retriever
 import llm
 import vertical
 import users
+import cache
 
 
 NOT_FOUND = "I could not find that in your documents."
@@ -39,6 +41,16 @@ def answer(
     }
     """
     t0 = time.time()
+
+    # ── 0. Check response cache (0ms instant return) ───────────────────────────
+    ckey = cache.answer_key(query, matter_id, force_cloud, use_heavy)
+    cached = cache.answer_cache.get(ckey)
+    if cached is not None:
+        cached_res = dict(cached)
+        cached_res["cached"] = True
+        cached_res["timing"] = dict(cached.get("timing", {}))
+        cached_res["timing"]["total_ms"] = int((time.time() - t0) * 1000)
+        return cached_res
 
     # ── 1. Retrieve ────────────────────────────────────────────────────────────
     t_ret = time.time()
@@ -103,7 +115,7 @@ def answer(
     # ── 7. Extract structured sources ─────────────────────────────────────────
     sources = _extract_sources(chunks[:5])
 
-    return _result(
+    res = _result(
         query=query,
         ans=response,
         sources=sources,
@@ -113,6 +125,169 @@ def answer(
         generation_ms=generation_ms,
         total_ms=int((time.time() - t0) * 1000),
     )
+    if response != NOT_FOUND and backend != "error":
+        cache.answer_cache.put(ckey, res)
+    return res
+
+
+def stream_answer(
+    query: str,
+    matter_id: Optional[str] = None,
+    user_id: Optional[int] = None,
+    force_cloud: bool = False,
+    use_heavy: bool = False,
+) -> Iterator[str]:
+    """
+    Streams the assistant response token-by-token over SSE.
+    Events yielded:
+      - metadata: { sources, backend_used, escalated, cached, retrieval_ms }
+      - token: { token }
+      - done: { query, answer, sources, backend_used, escalated, follow_ups, timing, cached }
+    """
+    t0 = time.time()
+    ckey = cache.answer_key(query, matter_id, force_cloud, use_heavy)
+    cached = cache.answer_cache.get(ckey)
+    if cached is not None:
+        meta_event = {
+            "sources": cached["sources"],
+            "backend_used": cached["backend_used"],
+            "escalated": cached["escalated"],
+            "cached": True,
+            "retrieval_ms": 0,
+        }
+        yield f"event: metadata\ndata: {json.dumps(meta_event)}\n\n"
+        yield f"event: token\ndata: {json.dumps({'token': cached['answer']})}\n\n"
+
+        done_payload = dict(cached)
+        done_payload["cached"] = True
+        done_payload["timing"] = dict(cached.get("timing", {}))
+        done_payload["timing"]["total_ms"] = int((time.time() - t0) * 1000)
+        yield f"event: done\ndata: {json.dumps(done_payload)}\n\n"
+
+        if matter_id and user_id:
+            try:
+                import store
+                with store.get_db_context() as db:
+                    store.save_chat_message(db, matter_id, user_id, "user", query)
+                    store.save_chat_message(db, matter_id, user_id, "assistant", cached["answer"])
+            except Exception:
+                pass
+        return
+
+    # ── 1. Retrieve ────────────────────────────────────────────────────────────
+    t_ret = time.time()
+    chunks = retriever.retrieve(query, matter_id=matter_id)
+    retrieval_ms = int((time.time() - t_ret) * 1000)
+
+    # ── 2. Nothing found → honest reply ───────────────────────────────────────
+    if not retriever.has_relevant_results(chunks):
+        meta_event = {
+            "sources": [],
+            "backend_used": "none",
+            "escalated": False,
+            "cached": False,
+            "retrieval_ms": retrieval_ms,
+        }
+        yield f"event: metadata\ndata: {json.dumps(meta_event)}\n\n"
+        yield f"event: token\ndata: {json.dumps({'token': NOT_FOUND})}\n\n"
+        done_payload = _result(
+            query=query,
+            ans=NOT_FOUND,
+            sources=[],
+            backend="none",
+            escalated=False,
+            retrieval_ms=retrieval_ms,
+            generation_ms=0,
+            total_ms=int((time.time() - t0) * 1000),
+        )
+        yield f"event: done\ndata: {json.dumps(done_payload)}\n\n"
+
+        if matter_id and user_id:
+            try:
+                import store
+                with store.get_db_context() as db:
+                    store.save_chat_message(db, matter_id, user_id, "user", query)
+                    store.save_chat_message(db, matter_id, user_id, "assistant", NOT_FOUND)
+            except Exception:
+                pass
+        return
+
+    # ── 3. Classify intent → routing decision ─────────────────────────────────
+    escalate = force_cloud or _should_escalate(query, chunks)
+    use_heavy = use_heavy or any(kw in query.lower() for kw in config.HEAVY_ESCALATION_KEYWORDS)
+    sources = _extract_sources(chunks[:5])
+
+    # ── 4. Build prompt ────────────────────────────────────────────────────────
+    system_prompt = vertical.get_system_prompt()
+    user_prompt = _build_user_prompt(query, chunks)
+
+    # ── 5. Yield initial metadata immediately (bridges perceived latency) ────
+    meta_event = {
+        "sources": sources,
+        "backend_used": "sarvam" if escalate else config.LLM_BACKEND,
+        "escalated": escalate,
+        "cached": False,
+        "retrieval_ms": retrieval_ms,
+    }
+    yield f"event: metadata\ndata: {json.dumps(meta_event)}\n\n"
+
+    # ── 6. Stream generation ──────────────────────────────────────────────────
+    t_gen = time.time()
+    accumulated_tokens = []
+    backend = "local"
+    try:
+        stream_iter, backend = llm.stream_with_fallback(
+            system_prompt,
+            user_prompt,
+            prefer_cloud=escalate,
+            use_heavy=use_heavy,
+        )
+        for token in stream_iter:
+            accumulated_tokens.append(token)
+            yield f"event: token\ndata: {json.dumps({'token': token})}\n\n"
+        full_answer = "".join(accumulated_tokens).strip()
+    except Exception as e:
+        full_answer = NOT_FOUND
+        backend = "error"
+        yield f"event: token\ndata: {json.dumps({'token': full_answer})}\n\n"
+
+    generation_ms = int((time.time() - t_gen) * 1000)
+
+    # ── 7. Validate citations ──────────────────────────────────────────────────
+    if not _has_citation(full_answer) and full_answer != NOT_FOUND:
+        if chunks:
+            top = chunks[0]
+            page_str = f", Page {top['page']}" if top.get("page") else ""
+            citation_added = f"\n\n[Source: {top['source_file']}{page_str}]"
+            full_answer += citation_added
+            yield f"event: token\ndata: {json.dumps({'token': citation_added})}\n\n"
+
+    # ── 8. Build final done payload ───────────────────────────────────────────
+    result = _result(
+        query=query,
+        ans=full_answer,
+        sources=sources,
+        backend=backend,
+        escalated=escalate,
+        retrieval_ms=retrieval_ms,
+        generation_ms=generation_ms,
+        total_ms=int((time.time() - t0) * 1000),
+    )
+
+    if full_answer != NOT_FOUND and backend != "error":
+        cache.answer_cache.put(ckey, result)
+
+    yield f"event: done\ndata: {json.dumps(result)}\n\n"
+
+    # ── 9. Persist chat message ───────────────────────────────────────────────
+    if matter_id and user_id:
+        try:
+            import store
+            with store.get_db_context() as db:
+                store.save_chat_message(db, matter_id, user_id, "user", query)
+                store.save_chat_message(db, matter_id, user_id, "assistant", result["answer"])
+        except Exception:
+            pass
 
 
 # ── Helpers ─────────────────────────────────────────────────────────────────────

@@ -104,6 +104,104 @@ export async function sendQuery(
   });
 }
 
+export interface StreamHandlers {
+  onMetadata?: (meta: { sources: any[]; backend_used: string; escalated: boolean; cached: boolean; retrieval_ms: number }) => void;
+  onToken?: (token: string) => void;
+  onDone?: (result: QueryResponse) => void;
+  onError?: (err: Error) => void;
+}
+
+export async function sendQueryStream(
+  query: string,
+  matterId: string | null,
+  forceCloud = false,
+  handlers: StreamHandlers = {},
+  signal?: AbortSignal
+): Promise<QueryResponse> {
+  const token = localStorage.getItem("auth_token");
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    "Accept": "text/event-stream",
+  };
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
+  const res = await fetch(`${BASE}/query/stream`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      query,
+      matter_id: matterId,
+      force_cloud: forceCloud,
+    }),
+    signal,
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "unknown error");
+    if (res.status === 401) {
+      localStorage.removeItem("auth_token");
+      window.dispatchEvent(new Event("auth_expired"));
+    }
+    throw new Error(`Engine error ${res.status}: ${text}`);
+  }
+
+  if (!res.body) {
+    throw new Error("No response body received from engine stream");
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let finalResult: QueryResponse | null = null;
+  let currentEvent = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() || "";
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed) {
+        currentEvent = "";
+        continue;
+      }
+      if (trimmed.startsWith("event: ")) {
+        currentEvent = trimmed.slice(7).trim();
+      } else if (trimmed.startsWith("data: ")) {
+        const rawData = trimmed.slice(6);
+        try {
+          const parsed = JSON.parse(rawData);
+          if (currentEvent === "metadata") {
+            handlers.onMetadata?.(parsed);
+          } else if (currentEvent === "token") {
+            handlers.onToken?.(parsed.token);
+          } else if (currentEvent === "done") {
+            finalResult = parsed;
+            handlers.onDone?.(parsed);
+          }
+        } catch {
+          // Ignore incomplete/malformed SSE chunk
+        }
+      }
+    }
+  }
+
+  if (finalResult) {
+    return finalResult;
+  }
+  throw new Error("Stream finished without final done payload");
+}
+
+export async function fetchHardwareInfo(): Promise<any> {
+  return request("/system/hardware");
+}
+
 export async function fetchChatHistory(matterId: string): Promise<any[]> {
   const data = await request<{ history: any[] }>(`/matters/${encodeURIComponent(matterId)}/chat`);
   return data.history;

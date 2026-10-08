@@ -3,6 +3,7 @@ import { v4 as uuid } from "./lib/uuid";
 import type { Message, MatterInfo, Source, Coworker } from "./lib/types";
 import {
   sendQuery,
+  sendQueryStream,
   fetchMatters,
   checkSetupStatus,
   fetchCurrentUser,
@@ -151,32 +152,104 @@ function MainApp() {
     async (query: string, forceCloud: boolean) => {
       if (isLoading) return;
       const userMsg: Message = { id: uuid(), role: "user", content: query, timestamp: new Date() };
-      setMessages(prev => [...prev, userMsg]);
+      const aiMsgId = uuid();
+      const streamingPlaceholder: Message = {
+        id: aiMsgId,
+        role: "assistant",
+        content: "",
+        isStreaming: true,
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, userMsg, streamingPlaceholder]);
       setIsLoading(true);
+
       try {
-        const result = await sendQuery(query, selectedMatter, forceCloud);
-        const aiMsg: Message = {
-          id: uuid(),
-          role: "assistant",
-          content: result.answer,
-          sources: result.sources,
-          backend: result.backend_used,
-          escalated: result.escalated,
-          timing: result.timing,
-          timestamp: new Date(),
-          follow_ups: result.follow_ups,
-        };
-        setMessages(prev => [...prev, aiMsg]);
-      } catch (e: any) {
-        const errMsg: Message = {
-          id: uuid(),
-          role: "assistant",
-          content: `Engine error: ${e?.message ?? "unknown error"}. Please ensure the engine is running.`,
-          timestamp: new Date(),
-          isError: true,
-        };
-        setMessages(prev => [...prev, errMsg]);
-        addToast("Query failed. Check the engine is running.", "error");
+        await sendQueryStream(
+          query,
+          selectedMatter,
+          forceCloud,
+          {
+            onMetadata: (meta) => {
+              setMessages(prev =>
+                prev.map(m =>
+                  m.id === aiMsgId
+                    ? {
+                        ...m,
+                        sources: meta.sources,
+                        backend: meta.backend_used,
+                        escalated: meta.escalated,
+                        cached: meta.cached,
+                      }
+                    : m
+                )
+              );
+            },
+            onToken: (token) => {
+              setMessages(prev =>
+                prev.map(m =>
+                  m.id === aiMsgId
+                    ? { ...m, content: m.content + token }
+                    : m
+                )
+              );
+            },
+            onDone: (result) => {
+              setMessages(prev =>
+                prev.map(m =>
+                  m.id === aiMsgId
+                    ? {
+                        ...m,
+                        content: result.answer,
+                        sources: result.sources,
+                        backend: result.backend_used,
+                        escalated: result.escalated,
+                        timing: result.timing,
+                        follow_ups: result.follow_ups,
+                        cached: result.cached,
+                        isStreaming: false,
+                      }
+                    : m
+                )
+              );
+            },
+          }
+        );
+      } catch (streamErr: any) {
+        // Fallback to traditional non-streaming query
+        try {
+          const result = await sendQuery(query, selectedMatter, forceCloud);
+          setMessages(prev =>
+            prev.map(m =>
+              m.id === aiMsgId
+                ? {
+                    ...m,
+                    content: result.answer,
+                    sources: result.sources,
+                    backend: result.backend_used,
+                    escalated: result.escalated,
+                    timing: result.timing,
+                    follow_ups: result.follow_ups,
+                    cached: result.cached,
+                    isStreaming: false,
+                  }
+                : m
+            )
+          );
+        } catch (e: any) {
+          setMessages(prev =>
+            prev.map(m =>
+              m.id === aiMsgId
+                ? {
+                    ...m,
+                    content: `Engine error: ${e?.message ?? "unknown error"}. Please ensure the engine is running.`,
+                    isError: true,
+                    isStreaming: false,
+                  }
+                : m
+            )
+          );
+          addToast("Query failed. Check the engine is running.", "error");
+        }
       } finally {
         setIsLoading(false);
       }
