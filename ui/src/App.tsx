@@ -27,11 +27,15 @@ import { Onboarding } from "./components/Onboarding";
 import { ApprovalModal } from "./components/ApprovalModal";
 import { CitationViewerModal } from "./components/CitationViewerModal";
 import { CommandPalette } from "./components/CommandPalette";
+import { DisplaySettingsModal } from "./components/DisplaySettingsModal";
+import { useDisplaySettings } from "./hooks/useDisplaySettings";
 
 type AppState = "loading" | "setup" | "login" | "main";
 
 function MainApp() {
   const { status: engineStatus } = useEngine();
+  const displaySettings = useDisplaySettings();
+  const [showDisplaySettings, setShowDisplaySettings] = useState(false);
   const [appState, setAppState] = useState<AppState>("loading");
   const [matters, setMatters] = useState<MatterInfo[]>([]);
   const [coworkers, setCoworkers] = useState<Coworker[]>([]);
@@ -341,33 +345,73 @@ function MainApp() {
   const currentMatter = matters.find(m => m.id === selectedMatter);
 
   return (
-    <div className="flex h-screen bg-[#131314] font-sans overflow-hidden">
+    <div className="flex h-screen bg-[#0d0f14] font-sans overflow-hidden">
       <UpdateBanner />
 
       {/* Top right quick actions */}
-      <div className="absolute top-4 right-6 z-50 flex items-center gap-2">
+      <div className="absolute top-4 right-6 z-50 flex items-center gap-2.5">
+        {/* In-App Zoom Stepper */}
+        <div className="flex items-center bg-[#161a23] border border-[#2d323f] rounded-xl overflow-hidden shadow-sm">
+          <button
+            onClick={displaySettings.zoomOut}
+            disabled={displaySettings.settings.zoom <= 80}
+            title="Zoom Out (Ctrl + Minus)"
+            className="px-2.5 py-2 text-slate-300 hover:text-white hover:bg-[#202532] transition-colors text-sm font-bold disabled:opacity-30 disabled:cursor-not-allowed"
+          >
+            −
+          </button>
+          <button
+            onClick={() => setShowDisplaySettings(true)}
+            title="Click to open Display & Font Settings"
+            className="px-2.5 py-2 text-xs sm:text-sm font-bold text-blue-400 hover:bg-[#202532] border-x border-[#2d323f] transition-colors font-mono"
+          >
+            {displaySettings.settings.zoom}%
+          </button>
+          <button
+            onClick={displaySettings.zoomIn}
+            disabled={displaySettings.settings.zoom >= 150}
+            title="Zoom In (Ctrl + Plus)"
+            className="px-2.5 py-2 text-slate-300 hover:text-white hover:bg-[#202532] transition-colors text-sm font-bold disabled:opacity-30 disabled:cursor-not-allowed"
+          >
+            +
+          </button>
+        </div>
+
+        {/* Display & Reading Preferences */}
+        <button
+          onClick={() => setShowDisplaySettings(true)}
+          className="flex items-center gap-2 bg-[#161a23] hover:bg-[#202532] border border-[#2d323f] px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-200 hover:text-white transition-colors shadow-sm cursor-pointer"
+          title="Open Display, Font Style, and Reading Preferences"
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-400">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+          </svg>
+          <span>Display</span>
+        </button>
+
         <button
           onClick={() => setShowCommandPalette(true)}
-          className="flex items-center gap-1.5 bg-[#1e1f20] hover:bg-[#282a2c] border border-[#303134] px-3 py-1.5 rounded-full text-xs font-medium text-[#bdc1c6] transition-colors"
+          className="flex items-center gap-2 bg-[#161a23] hover:bg-[#202532] border border-[#2d323f] px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-200 transition-colors shadow-sm"
           title="Global Search & Navigation (Ctrl+K)"
         >
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-blue-400">
             <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
           </svg>
           <span>Spotlight</span>
-          <kbd className="bg-[#303134] text-[9px] px-1 py-0.2 rounded border border-[#3c4043] text-[#9aa0a6]">
+          <kbd className="bg-[#202532] text-xs px-1.5 py-0.5 rounded border border-[#2d323f] text-slate-400 font-mono">
             Ctrl+K
           </kbd>
         </button>
 
         <button
           onClick={handleLogout}
-          className="flex items-center gap-2 bg-[#1e1f20] hover:bg-[#282a2c] border border-[#303134] px-3 py-1.5 rounded-full text-xs font-medium text-[#e8eaed] transition-colors"
+          className="flex items-center gap-2.5 bg-[#161a23] hover:bg-[#202532] border border-[#2d323f] px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold text-white transition-colors shadow-sm"
         >
-          <div className="w-5 h-5 bg-[#8ab4f8] rounded-full text-[#131314] flex items-center justify-center font-bold text-[10px]">
+          <div className="w-6 h-6 bg-blue-600 rounded-full text-white flex items-center justify-center font-bold text-xs">
             {user?.full_name?.charAt(0)?.toUpperCase()}
           </div>
-          {user?.full_name} · Logout
+          <span>{user?.full_name} · Logout</span>
         </button>
       </div>
 
@@ -378,6 +422,7 @@ function MainApp() {
           onCreateMatter={handleNewMatter}
           onOpenCommandPalette={() => setShowCommandPalette(true)}
           onExportWord={(mId) => handleExportWord(mId)}
+          onOpenDisplaySettings={() => setShowDisplaySettings(true)}
         />
       ) : (
         <div className="flex flex-1 overflow-hidden h-full">
@@ -390,24 +435,24 @@ function MainApp() {
           />
 
           {/* Center (Chat) */}
-          <div className="flex flex-col flex-1 overflow-hidden relative z-10 bg-[#131314]">
+          <div className="flex flex-col flex-1 overflow-hidden relative z-10 bg-[#0d0f14]">
             {/* Top Bar with Word Export & Actions */}
-            <div className="flex-shrink-0 h-14 bg-[#131314] border-b border-[#2a2b2e] flex items-center justify-between px-6 z-20">
-              <div className="flex items-center gap-2 text-[#e8eaed] font-medium">
-                <span className="text-base font-semibold">{currentMatter?.title || selectedMatter}</span>
+            <div className="flex-shrink-0 h-16 bg-[#161a23] border-b border-[#2d323f] flex items-center justify-between px-6 z-20">
+              <div className="flex items-center gap-3 text-white font-medium">
+                <span className="text-lg sm:text-xl font-bold text-white">{currentMatter?.title || selectedMatter}</span>
                 {currentMatter?.tags && currentMatter.tags.length > 0 && (
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-900/30 text-blue-300 border border-blue-800/40">
+                  <span className="text-xs font-bold px-3 py-1 rounded-full bg-blue-500/10 text-blue-300 border border-blue-500/30">
                     {currentMatter.tags[0]}
                   </span>
                 )}
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 mr-[440px]">
                 <button
                   onClick={() => handleExportWord()}
-                  className="text-xs bg-[#1e1f20] hover:bg-blue-600/20 text-[#c4c7c5] hover:text-blue-300 border border-[#303134] hover:border-blue-500/40 rounded-lg px-3 py-1.5 flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
+                  className="text-xs sm:text-sm font-semibold bg-[#202532] hover:bg-[#2c3344] text-slate-200 hover:text-white border border-[#2d323f] rounded-xl px-4 py-2 flex items-center gap-2 transition-all shadow-sm cursor-pointer"
                   title="Export full executive case brief as Microsoft Word (.docx)"
                 >
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-400">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-400">
                     <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
                     <polyline points="14 2 14 8 20 8" />
                     <line x1="16" y1="13" x2="8" y2="13" />
@@ -417,10 +462,10 @@ function MainApp() {
                 </button>
                 <button
                   onClick={handleExportCalendar}
-                  className="text-xs bg-[#1e1f20] hover:bg-emerald-600/20 text-[#c4c7c5] hover:text-emerald-300 border border-[#303134] hover:border-emerald-500/40 rounded-lg px-3 py-1.5 flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
+                  className="text-xs sm:text-sm font-semibold bg-[#202532] hover:bg-[#2c3344] text-slate-200 hover:text-white border border-[#2d323f] rounded-xl px-4 py-2 flex items-center gap-2 transition-all shadow-sm cursor-pointer"
                   title="Export court deadlines to Calendar (.ics)"
                 >
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-emerald-400">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-emerald-400">
                     <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
                     <line x1="16" y1="2" x2="16" y2="6" />
                     <line x1="8" y1="2" x2="8" y2="6" />
@@ -496,6 +541,7 @@ function MainApp() {
         onOpenCoworkers={() => {}}
         onExportCalendar={handleExportCalendar}
         onExportWord={handleExportWord}
+        onOpenDisplaySettings={() => setShowDisplaySettings(true)}
       />
 
       {/* Human-in-the-Loop Action Approval Gate (OpenWorker Protocol) */}
@@ -510,6 +556,18 @@ function MainApp() {
           fn?.();
         }}
         onCancel={() => setApprovalGate(null)}
+      />
+
+      {/* Display & Reading Preferences Modal */}
+      <DisplaySettingsModal
+        isOpen={showDisplaySettings}
+        onClose={() => setShowDisplaySettings(false)}
+        settings={displaySettings.settings}
+        updateSetting={displaySettings.updateSetting}
+        zoomIn={displaySettings.zoomIn}
+        zoomOut={displaySettings.zoomOut}
+        resetZoom={displaySettings.resetZoom}
+        resetAll={displaySettings.resetAll}
       />
     </div>
   );

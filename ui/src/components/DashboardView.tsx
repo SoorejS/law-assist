@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import type { MatterInfo } from "../lib/types";
 import { exportMatterCalendarIcs } from "../lib/api";
+import { useFontScale } from "../hooks/useFontScale";
 
 interface Props {
   matters: MatterInfo[];
@@ -8,6 +9,7 @@ interface Props {
   onCreateMatter: (title: string, tags?: string[]) => void;
   onOpenCommandPalette?: () => void;
   onExportWord?: (matterId: string) => void;
+  onOpenDisplaySettings?: () => void;
 }
 
 const PRESET_TAGS = [
@@ -19,12 +21,20 @@ const PRESET_TAGS = [
   "#CorporateFiling",
 ];
 
-export function DashboardView({ matters, onSelectMatter, onCreateMatter, onOpenCommandPalette, onExportWord }: Props) {
+export function DashboardView({
+  matters,
+  onSelectMatter,
+  onCreateMatter,
+  onOpenCommandPalette,
+  onExportWord,
+  onOpenDisplaySettings,
+}: Props) {
   const [showCreate, setShowCreate] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
   const [activeFilterTag, setActiveFilterTag] = useState<string | null>(null);
+  const { fontScale, cycleFontScale } = useFontScale();
 
   // Collect all unique tags across matters
   const allTags = useMemo(() => {
@@ -85,56 +95,83 @@ export function DashboardView({ matters, onSelectMatter, onCreateMatter, onOpenC
     }
   };
 
+  const fontScaleLabel = {
+    normal: "Standard (100%)",
+    large: "Large (115%)",
+    xlarge: "Extra Large (130%)",
+  }[fontScale];
+
   return (
-    <div className="flex-1 overflow-y-auto bg-[#131314] p-8 text-white relative h-full">
-      <div className="max-w-6xl mx-auto mt-6 space-y-6">
-        {/* Header with Search & Quick Palette shortcut */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#282a2c] pb-6">
+    <div className="flex-1 overflow-y-auto bg-[#0d0f14] p-6 sm:p-10 text-slate-100 relative h-full">
+      <div className="max-w-7xl mx-auto space-y-8">
+        {/* Header with Search & Quick Palette shortcut & Text Size */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-[#232834] pb-6">
           <div>
-            <h1 className="text-3xl font-medium tracking-tight">Active Workspaces & Matters</h1>
-            <p className="text-sm text-[#9aa0a6] mt-1">
-              Private, local-first legal and financial dossiers with cryptographically secure AI.
+            <div className="flex items-center gap-3">
+              <span className="w-3.5 h-3.5 rounded-full bg-blue-500 shadow-md shadow-blue-500/50" />
+              <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-white">
+                Active Workspaces & Matters
+              </h1>
+            </div>
+            <p className="text-base sm:text-lg text-slate-300 mt-2 font-normal leading-relaxed">
+              Private, local-first legal dossiers, litigation timelines, and financial audits.
             </p>
           </div>
 
-          {onOpenCommandPalette && (
+          <div className="flex items-center gap-3 flex-wrap">
+            {/* Reading Comfort & Display Settings */}
             <button
-              onClick={onOpenCommandPalette}
-              className="flex items-center gap-2.5 bg-[#1e1f20] hover:bg-[#282a2c] border border-[#303134] px-4 py-2 rounded-xl text-xs font-medium text-[#bdc1c6] transition-colors self-start sm:self-auto group"
+              onClick={() => {
+                if (onOpenDisplaySettings) onOpenDisplaySettings();
+                else cycleFontScale();
+              }}
+              title="Configure Font Style, Zoom, and Reading Comfort"
+              className="flex items-center gap-2 bg-[#181b22] hover:bg-[#222733] border border-[#2d323f] hover:border-blue-500/40 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-200 transition-colors cursor-pointer shadow-sm"
             >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[#9aa0a6] group-hover:text-white">
-                <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
-              </svg>
-              <span>Command Palette</span>
-              <kbd className="bg-[#303134] text-[10px] px-1.5 py-0.5 rounded border border-[#3c4043] text-[#9aa0a6]">
-                Ctrl + K
-              </kbd>
+              <span className="text-blue-400 font-bold text-base">A±</span>
+              <span className="hidden sm:inline">Display:</span>
+              <span className="text-blue-300 font-medium">{fontScaleLabel}</span>
             </button>
-          )}
+
+            {onOpenCommandPalette && (
+              <button
+                onClick={onOpenCommandPalette}
+                className="flex items-center gap-2.5 bg-[#181b22] hover:bg-[#222733] border border-[#2d323f] hover:border-blue-500/40 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-200 transition-colors group cursor-pointer shadow-sm"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-slate-400 group-hover:text-blue-400 transition-colors">
+                  <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+                </svg>
+                <span>Spotlight Search</span>
+                <kbd className="bg-[#242936] text-[11px] px-2 py-0.5 rounded-md border border-[#343b4c] text-slate-300 font-mono">
+                  Ctrl + K
+                </kbd>
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Tag Filters */}
         {allTags.length > 0 && (
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs">
-            <span className="text-[#9aa0a6] font-medium mr-1">Filter by Tag:</span>
+          <div className="flex items-center gap-2.5 overflow-x-auto pb-2 text-sm">
+            <span className="text-slate-400 font-semibold text-xs uppercase tracking-wider mr-1">Filter Dossiers:</span>
             <button
               onClick={() => setActiveFilterTag(null)}
-              className={`px-3 py-1 rounded-full font-medium transition-colors ${
+              className={`px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
                 activeFilterTag === null
-                  ? "bg-blue-600 text-white"
-                  : "bg-[#1e1f20] text-[#9aa0a6] hover:text-white hover:bg-[#282a2c]"
+                  ? "bg-blue-600 text-white shadow-md shadow-blue-600/30 ring-1 ring-blue-400"
+                  : "bg-[#181b22] text-slate-300 hover:text-white hover:bg-[#242936] border border-[#2d323f]"
               }`}
             >
-              All ({matters.length})
+              All Dossiers ({matters.length})
             </button>
             {allTags.map((tag) => (
               <button
                 key={tag}
                 onClick={() => setActiveFilterTag(activeFilterTag === tag ? null : tag)}
-                className={`px-3 py-1 rounded-full font-medium transition-colors ${
+                className={`px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
                   activeFilterTag === tag
-                    ? "bg-blue-600 text-white"
-                    : "bg-[#1e1f20] text-[#9aa0a6] hover:text-white hover:bg-[#282a2c] border border-[#303134]"
+                    ? "bg-blue-600 text-white shadow-md shadow-blue-600/30 ring-1 ring-blue-400"
+                    : "bg-[#181b22] text-slate-300 hover:text-white hover:bg-[#242936] border border-[#2d323f]"
                 }`}
               >
                 {tag}
@@ -143,28 +180,31 @@ export function DashboardView({ matters, onSelectMatter, onCreateMatter, onOpenC
           </div>
         )}
 
-        {/* Matter Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        {/* Matter Grid — Spacious 3-Column Layout */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-7">
           {/* Create New Card */}
           {showCreate ? (
-            <div className="bg-[#1e1f20] border border-blue-500/50 rounded-2xl p-5 shadow-lg flex flex-col min-h-[220px] transition-all relative overflow-hidden">
-              <form onSubmit={handleCreate} className="h-full flex flex-col justify-between space-y-3">
+            <div className="bg-[#181b22] border-2 border-blue-500 rounded-2xl p-6 shadow-2xl flex flex-col justify-between min-h-[250px] transition-all relative">
+              <form onSubmit={handleCreate} className="h-full flex flex-col justify-between space-y-4">
                 <div>
+                  <label className="text-xs font-bold uppercase tracking-wider text-blue-400 block mb-1">
+                    Matter Dossier Title
+                  </label>
                   <input
                     autoFocus
                     type="text"
-                    placeholder="Matter / Dossier title..."
+                    placeholder="e.g. O.S. 423/2026 - Ramesh vs State..."
                     value={newTitle}
                     onChange={(e) => setNewTitle(e.target.value)}
-                    className="w-full bg-transparent border-b border-slate-600 focus:border-blue-500 text-white text-base font-medium outline-none pb-2"
+                    className="w-full bg-[#111318] border border-[#2d323f] focus:border-blue-500 rounded-xl px-4 py-3 text-white text-base sm:text-lg font-semibold outline-none transition-colors"
                   />
 
                   {/* Preset Tag chips */}
-                  <div className="mt-3">
-                    <span className="text-[10px] uppercase font-bold text-[#9aa0a6] block mb-1.5">
-                      Assign Tags / Status
+                  <div className="mt-4">
+                    <span className="text-xs uppercase font-bold text-slate-400 block mb-2">
+                      Assign Practice Tag / Status
                     </span>
-                    <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto">
+                    <div className="flex flex-wrap gap-2 max-h-28 overflow-y-auto">
                       {PRESET_TAGS.map((tag) => {
                         const isSelected = selectedTags.includes(tag);
                         return (
@@ -172,10 +212,10 @@ export function DashboardView({ matters, onSelectMatter, onCreateMatter, onOpenC
                             key={tag}
                             type="button"
                             onClick={() => handleToggleTag(tag)}
-                            className={`text-[10px] px-2 py-0.5 rounded-md font-medium transition-colors ${
+                            className={`text-xs px-3 py-1 rounded-lg font-semibold transition-all cursor-pointer ${
                               isSelected
-                                ? "bg-blue-600 text-white"
-                                : "bg-[#131314] text-[#9aa0a6] hover:text-white border border-[#303134]"
+                                ? "bg-blue-600 text-white shadow-sm ring-1 ring-blue-300"
+                                : "bg-[#111318] text-slate-300 hover:text-white border border-[#2d323f]"
                             }`}
                           >
                             {tag}
@@ -187,30 +227,30 @@ export function DashboardView({ matters, onSelectMatter, onCreateMatter, onOpenC
 
                   <input
                     type="text"
-                    placeholder="Add custom tag (press Enter)..."
+                    placeholder="Type custom tag and press Enter..."
                     value={tagInput}
                     onChange={(e) => setTagInput(e.target.value)}
                     onKeyDown={handleAddCustomTag}
-                    className="w-full bg-[#131314] border border-[#303134] rounded-lg px-2 py-1 text-[11px] text-white mt-2 outline-none focus:border-blue-500"
+                    className="w-full bg-[#111318] border border-[#2d323f] rounded-xl px-3.5 py-2 text-xs sm:text-sm text-white mt-3 outline-none focus:border-blue-500"
                   />
                 </div>
 
-                <div className="flex justify-end gap-2 pt-2 border-t border-[#303134]">
+                <div className="flex justify-end gap-3 pt-3 border-t border-[#232834]">
                   <button
                     type="button"
                     onClick={() => {
                       setShowCreate(false);
                       setSelectedTags([]);
                     }}
-                    className="text-xs text-slate-400 hover:text-white px-3 py-1.5 rounded-full"
+                    className="text-sm font-semibold text-slate-300 hover:text-white px-4 py-2 rounded-xl hover:bg-[#242936] transition-colors cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="text-xs bg-blue-600 hover:bg-blue-500 text-white px-4 py-1.5 rounded-full font-medium transition-colors"
+                    className="text-sm font-bold bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-xl shadow-lg shadow-blue-600/30 transition-all cursor-pointer"
                   >
-                    Create
+                    Create Dossier
                   </button>
                 </div>
               </form>
@@ -218,35 +258,39 @@ export function DashboardView({ matters, onSelectMatter, onCreateMatter, onOpenC
           ) : (
             <button
               onClick={() => setShowCreate(true)}
-              className="bg-[#1e1f20] hover:bg-[#282a2c] border border-[#2a2b2e] hover:border-blue-500/40 rounded-2xl p-5 shadow-sm flex flex-col items-center justify-center min-h-[220px] transition-all group cursor-pointer"
+              className="bg-[#181b22] hover:bg-[#1f2430] border-2 border-dashed border-[#2d323f] hover:border-blue-500/60 rounded-2xl p-7 shadow-sm flex flex-col items-center justify-center min-h-[250px] transition-all group cursor-pointer"
             >
-              <div className="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <div className="w-14 h-14 rounded-2xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center mb-4 group-hover:scale-110 group-hover:bg-blue-600/20 transition-all shadow-md">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M5 12h14M12 5v14" />
                 </svg>
               </div>
-              <span className="text-[#a8c7fa] font-medium text-sm">New Matter Dossier</span>
-              <span className="text-[11px] text-[#9aa0a6] mt-1">Initialize confidential workspace</span>
+              <span className="text-blue-300 font-bold text-lg group-hover:text-white transition-colors">
+                + New Matter Dossier
+              </span>
+              <span className="text-sm text-slate-400 mt-1.5 text-center">
+                Initialize private case folder for documents & AI
+              </span>
             </button>
           )}
 
-          {/* Matter Cards */}
+          {/* Matter Dossier Cards */}
           {filteredMatters.map((m) => (
             <div
               key={m.id}
               onClick={() => onSelectMatter(m.id)}
-              className="bg-[#1e1f20] hover:bg-[#282a2c] border border-[#2a2b2e] hover:border-[#3c4043] rounded-2xl p-5 shadow-sm flex flex-col justify-between min-h-[220px] transition-all text-left cursor-pointer group relative"
+              className="bg-[#181b22] hover:bg-[#1f2430] border border-[#2d323f] hover:border-blue-500/50 rounded-2xl p-6 shadow-md hover:shadow-2xl hover:shadow-black/60 flex flex-col justify-between min-h-[250px] transition-all text-left cursor-pointer group relative"
             >
               <div>
-                <div className="flex items-center justify-between mb-3">
-                  <div className="w-9 h-9 rounded-xl bg-[#303134] group-hover:bg-blue-600/20 group-hover:text-blue-400 flex items-center justify-center transition-colors">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-11 h-11 rounded-xl bg-[#242936] group-hover:bg-blue-600/20 text-blue-400 flex items-center justify-center transition-colors border border-[#343b4c]">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
                     </svg>
                   </div>
 
-                  <div className="flex items-center gap-1">
-                    {/* Quick Word Export icon */}
+                  <div className="flex items-center gap-1.5">
+                    {/* Word Brief Export */}
                     {onExportWord && (
                       <button
                         onClick={(e) => {
@@ -254,9 +298,9 @@ export function DashboardView({ matters, onSelectMatter, onCreateMatter, onOpenC
                           onExportWord(m.id);
                         }}
                         title="Export Full Case Brief to Word (.docx)"
-                        className="p-1.5 rounded-lg text-[#9aa0a6] hover:text-blue-400 hover:bg-[#303134] opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="p-2 rounded-xl text-slate-400 hover:text-blue-300 hover:bg-[#252b38] transition-colors"
                       >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
                           <polyline points="14 2 14 8 20 8" />
                           <line x1="16" y1="13" x2="8" y2="13" />
@@ -265,13 +309,13 @@ export function DashboardView({ matters, onSelectMatter, onCreateMatter, onOpenC
                       </button>
                     )}
 
-                    {/* Quick Calendar Export icon */}
+                    {/* Calendar Sync */}
                     <button
                       onClick={(e) => handleExportCalendar(e, m.id)}
-                      title="Export Deadlines to Calendar (.ics)"
-                      className="p-1.5 rounded-lg text-[#9aa0a6] hover:text-white hover:bg-[#303134] opacity-0 group-hover:opacity-100 transition-opacity"
+                      title="Sync Deadlines to Calendar (.ics)"
+                      className="p-2 rounded-xl text-slate-400 hover:text-emerald-400 hover:bg-[#252b38] transition-colors"
                     >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
                         <line x1="16" y1="2" x2="16" y2="6" />
                         <line x1="8" y1="2" x2="8" y2="6" />
@@ -281,38 +325,47 @@ export function DashboardView({ matters, onSelectMatter, onCreateMatter, onOpenC
                   </div>
                 </div>
 
-                <h2 className="text-base font-semibold text-[#e8eaed] group-hover:text-blue-300 truncate w-full mb-1 transition-colors">
+                <h2 className="text-xl font-bold text-white group-hover:text-blue-300 truncate w-full mb-2 transition-colors tracking-tight">
                   {m.title || m.id}
                 </h2>
-                {m.description && (
-                  <p className="text-xs text-[#9aa0a6] line-clamp-2 leading-relaxed mb-2">
+                {m.description ? (
+                  <p className="text-sm text-slate-300 line-clamp-2 leading-relaxed mb-3">
                     {m.description}
+                  </p>
+                ) : (
+                  <p className="text-sm text-slate-400 italic mb-3">
+                    Click to open case timeline & chat assistant.
                   </p>
                 )}
 
                 {/* Tags */}
                 {m.tags && m.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mt-2">
+                  <div className="flex flex-wrap gap-1.5 mt-2">
                     {m.tags.slice(0, 3).map((tag, idx) => (
                       <span
                         key={idx}
-                        className="text-[9px] font-bold tracking-wider px-2 py-0.5 rounded-md bg-[#131314] text-[#8ab4f8] border border-[#303134]"
+                        className="text-xs font-semibold px-2.5 py-1 rounded-md bg-[#111318] text-blue-300 border border-blue-500/30"
                       >
                         {tag}
                       </span>
                     ))}
                     {m.tags.length > 3 && (
-                      <span className="text-[9px] text-[#9aa0a6] px-1 py-0.5">
-                        +{m.tags.length - 3}
+                      <span className="text-xs text-slate-400 px-1 py-1 font-medium">
+                        +{m.tags.length - 3} more
                       </span>
                     )}
                   </div>
                 )}
               </div>
 
-              <div className="mt-4 pt-3 border-t border-[#2a2b2e] text-xs text-[#9aa0a6] flex items-center justify-between">
-                <span>{m.file_count} sources · {m.chunk_count} passages</span>
-                <span className="text-[11px]">{new Date(m.created_at).toLocaleDateString()}</span>
+              <div className="mt-5 pt-3.5 border-t border-[#232834] text-xs sm:text-sm text-slate-300 flex items-center justify-between font-medium">
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                  {m.file_count} documents · {m.chunk_count} passages
+                </span>
+                <span className="text-slate-400 font-normal">
+                  {new Date(m.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
+                </span>
               </div>
             </div>
           ))}

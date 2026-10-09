@@ -101,6 +101,8 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # ty
 
 # ── CORS — restricted to known local origins ────────────────────────────────────
 ALLOWED_ORIGINS = [
+    "http://localhost:8765",
+    "http://127.0.0.1:8765",
     "http://localhost:1420",
     "http://localhost:5173",
     "http://localhost:5174",
@@ -933,14 +935,15 @@ def check_update():
 import sys
 _ui_dist = None
 if getattr(sys, 'frozen', False):
-    # PyInstaller bundle mode
+    # PyInstaller bundle mode: check filesystem first, then fallback to embedded _MEIPASS
+    exe_dir = Path(sys.executable).parent
     meipass = getattr(sys, '_MEIPASS', None)
     candidates = [
+        exe_dir / "ui",
+        exe_dir.parent / "ui",
+        exe_dir / "dist",
+        exe_dir.parent / "ui" / "dist",
         Path(meipass) / "ui" if meipass else None,
-        Path(sys.executable).parent / "ui",
-        Path(sys.executable).parent / "dist",
-        Path(sys.executable).parent.parent / "ui",
-        Path(sys.executable).parent.parent / "ui" / "dist",
     ]
 else:
     # Local dev mode
@@ -955,8 +958,23 @@ for cand in candidates:
         _ui_dist = cand
         break
 
+class _NoCacheHtmlStaticFiles(StaticFiles):
+    """Force browsers to revalidate index.html so upgrades show the new UI immediately.
+
+    Hashed assets (/assets/index-XXXX.js) stay cacheable since their names change per build.
+    """
+
+    async def get_response(self, path, scope):
+        response = await super().get_response(path, scope)
+        if path in ("", ".", "index.html") or path.endswith(".html"):
+            response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+            response.headers["Pragma"] = "no-cache"
+            response.headers["Expires"] = "0"
+        return response
+
+
 if _ui_dist and _ui_dist.exists():
-    app.mount("/", StaticFiles(directory=str(_ui_dist), html=True), name="ui")
+    app.mount("/", _NoCacheHtmlStaticFiles(directory=str(_ui_dist), html=True), name="ui")
 
 
 # ── Entry point ────────────────────────────────────────────────────────────────

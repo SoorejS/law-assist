@@ -24,6 +24,7 @@ interface Props {
   onOpenCoworkers: (coworkerId?: string) => void;
   onExportCalendar?: () => void;
   onExportWord?: () => void;
+  onOpenDisplaySettings?: () => void;
 }
 
 export function CommandPalette({
@@ -39,6 +40,7 @@ export function CommandPalette({
   onOpenCoworkers,
   onExportCalendar,
   onExportWord,
+  onOpenDisplaySettings,
 }: Props) {
   const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -79,6 +81,20 @@ export function CommandPalette({
         onOpenGlobalSearch();
       },
     });
+
+    if (onOpenDisplaySettings) {
+      list.push({
+        id: "act-display-settings",
+        category: "Quick Actions",
+        title: "Display & Reading Preferences",
+        subtitle: "Adjust zoom, legal editorial serif font, font size, and contrast",
+        icon: "settings",
+        action: () => {
+          onClose();
+          onOpenDisplaySettings();
+        },
+      });
+    }
 
     if (currentMatterId) {
       list.push({
@@ -204,15 +220,15 @@ export function CommandPalette({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-24 bg-black/60 backdrop-blur-sm p-4">
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-24 bg-black/70 backdrop-blur-sm p-4">
       <div
-        className="bg-[#1e1f20] border border-[#3c4043] rounded-2xl w-full max-w-xl shadow-2xl overflow-hidden flex flex-col animate-fade-in"
+        className="bg-[#161a23] border border-[#2d323f] rounded-2xl w-full max-w-xl shadow-2xl overflow-hidden flex flex-col animate-fade-in"
         role="dialog"
         aria-modal="true"
       >
         {/* Search Input Bar */}
-        <div className="flex items-center gap-3 px-4 py-3.5 border-b border-[#303134] bg-[#282a2c]/50">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[#9aa0a6]">
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-[#2d323f] bg-[#1a1f2c]">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-blue-400">
             <circle cx="11" cy="11" r="8" />
             <line x1="21" y1="21" x2="16.65" y2="16.65" />
           </svg>
@@ -220,19 +236,19 @@ export function CommandPalette({
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Type a command, coworker, or matter... (Ctrl+K)"
-            className="flex-1 bg-transparent border-none text-[#e8eaed] placeholder-[#9aa0a6] text-sm focus:outline-none"
+            placeholder="Search commands, coworkers, or matters... (Ctrl+K)"
+            className="flex-1 bg-transparent border-none text-white placeholder-slate-400 text-sm sm:text-base font-medium focus:outline-none"
             autoFocus
           />
-          <kbd className="hidden sm:inline-block px-2 py-0.5 text-[10px] font-semibold text-[#9aa0a6] bg-[#303134] border border-[#3c4043] rounded">
+          <kbd className="hidden sm:inline-block px-2.5 py-1 text-xs font-bold text-slate-300 bg-[#202532] border border-[#2d323f] rounded-lg">
             ESC
           </kbd>
         </div>
 
         {/* Results List */}
-        <div className="max-h-[380px] overflow-y-auto p-2 space-y-1">
+        <div className="max-h-[400px] overflow-y-auto p-2.5 space-y-1.5">
           {filteredCommands.length === 0 ? (
-            <div className="py-8 text-center text-sm text-[#9aa0a6]">
+            <div className="py-10 text-center text-sm sm:text-base text-slate-400 font-medium">
               No matches found for "{query}"
             </div>
           ) : (
@@ -243,53 +259,53 @@ export function CommandPalette({
                   key={cmd.id}
                   onClick={cmd.action}
                   onMouseEnter={() => setSelectedIndex(idx)}
-                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-left transition-colors ${
+                  className={`w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-left transition-colors ${
                     isSelected
-                      ? "bg-blue-600/20 text-[#e8eaed] border border-blue-500/30"
-                      : "text-[#bdc1c6] hover:bg-[#282a2c]"
+                      ? "bg-blue-600/20 text-white border border-blue-500/40"
+                      : "text-slate-300 hover:bg-[#202532]"
                   }`}
                 >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                      isSelected ? "bg-blue-600 text-white" : "bg-[#303134] text-[#9aa0a6]"
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                      isSelected ? "bg-blue-600 text-white" : "bg-[#202532] text-slate-300 border border-[#2d323f]"
                     }`}>
                       {cmd.category === "Matters" && (
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                           <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
                         </svg>
                       )}
                       {cmd.category === "Coworkers" && (
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                           <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
                           <circle cx="8.5" cy="7" r="4" />
                           <polyline points="17 11 19 13 23 9" />
                         </svg>
                       )}
                       {cmd.category === "Quick Actions" && (
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                           <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
                         </svg>
                       )}
                     </div>
                     <div className="min-w-0">
-                      <div className="text-sm font-medium text-[#e8eaed] truncate">
+                      <div className="text-sm sm:text-base font-semibold text-white truncate">
                         {cmd.title}
                       </div>
                       {cmd.subtitle && (
-                        <div className="text-xs text-[#9aa0a6] truncate">
+                        <div className="text-xs sm:text-sm text-slate-300 font-medium truncate mt-0.5">
                           {cmd.subtitle}
                         </div>
                       )}
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 flex-shrink-0 ml-3">
+                  <div className="flex items-center gap-2.5 flex-shrink-0 ml-3">
                     {cmd.badge && (
-                      <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-[#303134] text-[#9aa0a6]">
+                      <span className="text-xs uppercase font-bold tracking-wider px-2.5 py-0.5 rounded-full bg-[#202532] text-slate-200 border border-[#2d323f]">
                         {cmd.badge}
                       </span>
                     )}
-                    <span className="text-[11px] text-[#5f6368] font-mono">
+                    <span className="text-xs text-slate-400 font-medium">
                       {cmd.category}
                     </span>
                   </div>
@@ -300,13 +316,13 @@ export function CommandPalette({
         </div>
 
         {/* Footer shortcuts helper */}
-        <div className="px-4 py-2 bg-[#131314] border-t border-[#303134] flex items-center justify-between text-[11px] text-[#9aa0a6]">
-          <div className="flex items-center gap-3">
-            <span><kbd className="bg-[#282a2c] px-1 rounded">↑↓</kbd> to navigate</span>
-            <span><kbd className="bg-[#282a2c] px-1 rounded">↵</kbd> to select</span>
-            <span><kbd className="bg-[#282a2c] px-1 rounded">ESC</kbd> to close</span>
+        <div className="px-5 py-3 bg-[#11131a] border-t border-[#2d323f] flex items-center justify-between text-xs text-slate-300 font-medium">
+          <div className="flex items-center gap-4">
+            <span><kbd className="bg-[#202532] px-1.5 py-0.5 rounded text-white font-mono">↑↓</kbd> navigate</span>
+            <span><kbd className="bg-[#202532] px-1.5 py-0.5 rounded text-white font-mono">↵</kbd> select</span>
+            <span><kbd className="bg-[#202532] px-1.5 py-0.5 rounded text-white font-mono">ESC</kbd> dismiss</span>
           </div>
-          <span className="text-blue-400 font-medium">ProAssist Spotlight</span>
+          <span className="text-blue-400 font-bold">ProAssist Spotlight</span>
         </div>
       </div>
     </div>

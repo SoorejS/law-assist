@@ -311,12 +311,12 @@ export function CoworkerPanel({ matterId, matterTitle, onRequestApproval, onOutc
   };
 
   return (
-    <div className="flex flex-col h-full overflow-hidden bg-[#1e1f20] text-[#e8eaed]">
+    <div className="flex flex-col h-full overflow-hidden bg-[#101218] text-[#e8eaed]">
       {/* Header bar */}
-      <div className="p-4 border-b border-[#303134] bg-[#1e1f20]/90 backdrop-blur-md flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <div className="p-5 border-b border-[#232834] bg-[#141720] flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/30 text-blue-400 flex items-center justify-center">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
               <circle cx="9" cy="7" r="4" />
               <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
@@ -324,26 +324,26 @@ export function CoworkerPanel({ matterId, matterTitle, onRequestApproval, onOutc
             </svg>
           </div>
           <div>
-            <h2 className="text-[14px] font-semibold flex items-center gap-1.5">
+            <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
               AI Coworkers
-              <span className="text-[10px] bg-blue-500/10 text-blue-400 border border-blue-500/20 px-1.5 py-0.5 rounded-full font-medium">
-                OpenWorker
+              <span className="text-xs bg-blue-500/10 text-blue-300 border border-blue-500/30 px-2 py-0.5 rounded-full font-semibold">
+                Autonomous
               </span>
             </h2>
-            <p className="text-[11px] text-[#9aa0a6]">Autonomous outcome specialists</p>
+            <p className="text-xs sm:text-sm text-slate-300 font-medium">Outcome-oriented legal specialists</p>
           </div>
         </div>
 
         <button
           onClick={() => setShowCreateModal(true)}
           title="Create Custom Coworker or Import Bundle"
-          className="p-1.5 rounded-lg bg-[#303134] hover:bg-[#3c4043] text-[#e8eaed] text-xs transition-colors flex items-center gap-1"
+          className="px-3 py-2 rounded-xl bg-[#202532] hover:bg-[#2c3344] text-slate-200 hover:text-white text-xs sm:text-sm font-semibold transition-colors flex items-center gap-1.5 border border-[#2d3344] cursor-pointer"
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <line x1="12" y1="5" x2="12" y2="19" />
             <line x1="5" y1="12" x2="19" y2="12" />
           </svg>
-          <span className="text-[11px] font-medium hidden sm:inline">Add / Import</span>
+          <span className="hidden sm:inline">Add / Import</span>
         </button>
       </div>
 
@@ -374,60 +374,63 @@ export function CoworkerPanel({ matterId, matterTitle, onRequestApproval, onOutc
         {outcome && !running && (
           <div className="space-y-4 animate-fade-in">
             {/* Outcome Header Card */}
-            <div className="p-4 rounded-2xl bg-[#131314] border border-[#303134] space-y-3">
-              <div className="flex items-start justify-between">
+            <div className="p-4 sm:p-5 rounded-2xl bg-[#161a23] border border-[#2d323f] space-y-3.5">
+              <div className="flex items-start justify-between gap-3">
                 <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+                  <span className="text-xs font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-1 rounded-full">
                     Completed Outcome
                   </span>
-                  <h3 className="text-[15px] font-semibold text-white mt-1.5">{outcome.title}</h3>
-                  <p className="text-[11px] text-[#9aa0a6]">{outcome.coworker_name} · {outcome.role}</p>
+                  <h3 className="text-base sm:text-lg font-bold text-white mt-2">{outcome.title}</h3>
+                  <p className="text-xs sm:text-sm text-slate-300 mt-0.5">{outcome.coworker_name} · {outcome.role}</p>
                 </div>
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-2">
                   <button
                     onClick={handleExportWord}
                     title="Export as Microsoft Word (.docx)"
-                    className="p-1.5 bg-[#303134] hover:bg-[#3c4043] rounded-lg text-xs text-[#e8eaed] transition-colors flex items-center gap-1"
+                    className="px-2.5 py-1.5 bg-[#202532] hover:bg-[#2c3344] border border-[#2d323f] rounded-xl text-xs sm:text-sm text-slate-200 hover:text-white transition-colors flex items-center gap-1.5 font-medium"
                   >
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                       <polyline points="7 10 12 15 17 10" />
                       <line x1="12" y1="15" x2="12" y2="3" />
                     </svg>
-                    <span className="text-[10px]">.docx</span>
+                    <span>.docx</span>
                   </button>
                   <button
                     onClick={handleExportCalendar}
                     title="Sync Deadlines to Calendar (.ics)"
-                    className="p-1.5 bg-[#303134] hover:bg-[#3c4043] rounded-lg text-xs text-[#e8eaed] transition-colors flex items-center gap-1"
+                    className="px-2.5 py-1.5 bg-[#202532] hover:bg-[#2c3344] border border-[#2d323f] rounded-xl text-xs sm:text-sm text-slate-200 hover:text-white transition-colors flex items-center gap-1.5 font-medium"
                   >
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
                       <line x1="16" y1="2" x2="16" y2="6" />
                       <line x1="8" y1="2" x2="8" y2="6" />
                       <line x1="3" y1="10" x2="21" y2="10" />
                     </svg>
-                    <span className="text-[10px]">.ics</span>
+                    <span>.ics</span>
                   </button>
                   <button
                     onClick={handleCopyMarkdown}
                     title="Copy Markdown Memo"
-                    className="p-1.5 bg-[#303134] hover:bg-[#3c4043] rounded-lg text-xs text-[#e8eaed] transition-colors"
+                    className="px-2.5 py-1.5 bg-[#202532] hover:bg-[#2c3344] border border-[#2d323f] rounded-xl text-xs sm:text-sm text-slate-200 hover:text-white transition-colors flex items-center gap-1.5 font-medium"
                   >
                     {copied ? (
-                      <span className="text-[10px] text-emerald-400 font-semibold">Copied!</span>
+                      <span className="text-emerald-400 font-semibold">Copied!</span>
                     ) : (
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                      </svg>
+                      <>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                        </svg>
+                        <span>Copy</span>
+                      </>
                     )}
                   </button>
                 </div>
               </div>
 
               {/* Summary */}
-              <p className="text-xs text-[#bdc1c6] leading-relaxed bg-[#1e1f20] p-3 rounded-xl border border-[#303134]">
+              <p className="text-xs sm:text-sm text-slate-200 leading-relaxed bg-[#11131a] p-3.5 rounded-xl border border-[#2d323f]">
                 {outcome.summary}
               </p>
             </div>
@@ -435,15 +438,15 @@ export function CoworkerPanel({ matterId, matterTitle, onRequestApproval, onOutc
             {/* Key Findings */}
             {outcome.key_findings && outcome.key_findings.length > 0 && (
               <div className="space-y-2">
-                <h4 className="text-[11px] font-bold uppercase tracking-wider text-[#9aa0a6] flex items-center gap-1.5">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
+                <h4 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
                   Key Evidential Findings
                 </h4>
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                   {outcome.key_findings.map((f, i) => (
-                    <div key={i} className="text-xs bg-[#131314] p-2.5 rounded-xl border border-[#303134] text-[#e8eaed] flex items-start gap-2">
-                      <span className="text-blue-400 mt-0.5">•</span>
-                      <span className="leading-relaxed">{f}</span>
+                    <div key={i} className="text-xs sm:text-sm bg-[#161a23] p-3 rounded-xl border border-[#2d323f] text-slate-200 flex items-start gap-2.5 leading-relaxed">
+                      <span className="text-blue-400 font-bold mt-0.5">•</span>
+                      <span>{f}</span>
                     </div>
                   ))}
                 </div>
@@ -453,29 +456,29 @@ export function CoworkerPanel({ matterId, matterTitle, onRequestApproval, onOutc
             {/* Risk Matrix */}
             {outcome.risk_matrix && outcome.risk_matrix.length > 0 && (
               <div className="space-y-2">
-                <h4 className="text-[11px] font-bold uppercase tracking-wider text-[#9aa0a6] flex items-center gap-1.5">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
+                <h4 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
                   Risk Matrix & Exposure
                 </h4>
-                <div className="space-y-2">
+                <div className="space-y-2.5">
                   {outcome.risk_matrix.map((r, i) => {
                     const sev = r.severity?.toLowerCase();
                     const badgeClass =
                       sev === "high"
-                        ? "bg-red-500/10 text-red-400 border-red-500/20"
+                        ? "bg-red-500/10 text-red-400 border-red-500/30"
                         : sev === "medium"
-                        ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
-                        : "bg-blue-500/10 text-blue-400 border-blue-500/20";
+                        ? "bg-amber-500/10 text-amber-400 border-amber-500/30"
+                        : "bg-blue-500/10 text-blue-400 border-blue-500/30";
 
                     return (
-                      <div key={i} className="p-3 bg-[#131314] rounded-xl border border-[#303134] space-y-1 text-xs">
+                      <div key={i} className="p-3.5 bg-[#161a23] rounded-xl border border-[#2d323f] space-y-1.5 text-xs sm:text-sm">
                         <div className="flex items-center justify-between">
-                          <span className="font-semibold text-white">{r.item}</span>
-                          <span className={`text-[9px] uppercase font-bold px-2 py-0.5 rounded-full border ${badgeClass}`}>
+                          <span className="font-bold text-white text-sm sm:text-base">{r.item}</span>
+                          <span className={`text-xs uppercase font-bold px-2.5 py-0.5 rounded-full border ${badgeClass}`}>
                             {r.severity}
                           </span>
                         </div>
-                        <p className="text-[11px] text-[#9aa0a6]">{r.detail}</p>
+                        <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">{r.detail}</p>
                       </div>
                     );
                   })}
@@ -486,20 +489,20 @@ export function CoworkerPanel({ matterId, matterTitle, onRequestApproval, onOutc
             {/* Action Plan */}
             {outcome.action_plan && outcome.action_plan.length > 0 && (
               <div className="space-y-2">
-                <h4 className="text-[11px] font-bold uppercase tracking-wider text-[#9aa0a6] flex items-center gap-1.5">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
+                <h4 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
                   Action Plan & Next Steps
                 </h4>
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                   {outcome.action_plan.map((a, i) => (
-                    <div key={i} className="flex items-start gap-2.5 p-2.5 bg-[#131314] rounded-xl border border-[#303134] text-xs">
-                      <span className="w-5 h-5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 font-bold text-[10px] flex items-center justify-center flex-shrink-0">
+                    <div key={i} className="flex items-start gap-3 p-3 bg-[#161a23] rounded-xl border border-[#2d323f] text-xs sm:text-sm">
+                      <span className="w-6 h-6 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-400 font-bold text-xs flex items-center justify-center flex-shrink-0">
                         {a.step || i + 1}
                       </span>
                       <div className="flex-1">
-                        <p className="text-white leading-relaxed">{a.action}</p>
+                        <p className="text-white font-medium leading-relaxed">{a.action}</p>
                         {a.owner_or_deadline && (
-                          <span className="text-[10px] text-[#9aa0a6] block mt-0.5">
+                          <span className="text-xs text-slate-400 block mt-1 font-medium">
                             Target: {a.owner_or_deadline}
                           </span>
                         )}
@@ -510,9 +513,9 @@ export function CoworkerPanel({ matterId, matterTitle, onRequestApproval, onOutc
                 {outcome.coworker_id === "deadline_tracker" && (
                   <button
                     onClick={handleExportCalendar}
-                    className="w-full py-2.5 px-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-2 shadow-md transition-colors mt-2"
+                    className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 shadow-md transition-colors mt-2"
                   >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
                       <line x1="16" y1="2" x2="16" y2="6" />
                       <line x1="8" y1="2" x2="8" y2="6" />
@@ -527,7 +530,7 @@ export function CoworkerPanel({ matterId, matterTitle, onRequestApproval, onOutc
             {/* Back button */}
             <button
               onClick={() => setOutcome(null)}
-              className="w-full py-2.5 bg-[#303134] hover:bg-[#3c4043] rounded-xl text-xs font-semibold text-[#e8eaed] transition-colors"
+              className="w-full py-3 bg-[#202532] hover:bg-[#2c3344] border border-[#2d323f] rounded-xl text-xs sm:text-sm font-bold text-slate-200 hover:text-white transition-colors"
             >
               ← Back to Coworkers List
             </button>
@@ -536,41 +539,41 @@ export function CoworkerPanel({ matterId, matterTitle, onRequestApproval, onOutc
 
         {/* List of Coworkers (when no active outcome) */}
         {!outcome && !running && (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between text-xs px-1">
-              <span className="text-[#9aa0a6] font-medium">Available Specialists</span>
+          <div className="space-y-3.5">
+            <div className="flex items-center justify-between text-xs sm:text-sm px-1 font-semibold">
+              <span className="text-slate-300">Available Specialists</span>
               {/* Cloud Escalation Toggle */}
-              <label className="flex items-center gap-1.5 text-[11px] cursor-pointer text-[#bdc1c6]">
+              <label className="flex items-center gap-2 text-xs sm:text-sm cursor-pointer text-slate-300 hover:text-white">
                 <input
                   type="checkbox"
                   checked={forceCloud}
                   onChange={(e) => setForceCloud(e.target.checked)}
-                  className="rounded bg-[#131314] border-[#303134] text-blue-500 focus:ring-0"
+                  className="rounded w-4 h-4 bg-[#13151b] border-[#2d323f] text-blue-500 focus:ring-0"
                 />
                 <span>Cloud AI Escalation</span>
               </label>
             </div>
 
             {loadingList ? (
-              <div className="text-center py-10 text-xs text-[#9aa0a6]">Loading Coworker catalog...</div>
+              <div className="text-center py-10 text-xs sm:text-sm text-slate-400">Loading Coworker catalog...</div>
             ) : coworkers.length === 0 ? (
-              <div className="text-center py-8 text-xs text-[#9aa0a6]">No Coworkers available for this workspace.</div>
+              <div className="text-center py-8 text-xs sm:text-sm text-slate-400">No Coworkers available for this workspace.</div>
             ) : (
               coworkers.map((c) => (
                 <div
                   key={c.id}
-                  className="p-3.5 rounded-2xl bg-[#131314] border border-[#303134] hover:border-[#4d5156] transition-all space-y-2.5 group"
+                  className="p-4 rounded-2xl bg-[#161a23] border border-[#2d323f] hover:border-blue-500/50 hover:bg-[#1b202c] transition-all space-y-3 group shadow-sm"
                 >
                   <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center flex-shrink-0">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/30 text-blue-400 flex items-center justify-center flex-shrink-0">
                         {renderIcon(c.icon)}
                       </div>
                       <div>
-                        <h4 className="text-xs font-semibold text-white group-hover:text-blue-400 transition-colors">
+                        <h4 className="text-sm sm:text-base font-bold text-white group-hover:text-blue-400 transition-colors">
                           {c.name}
                         </h4>
-                        <span className="text-[10px] text-[#9aa0a6]">{c.role}</span>
+                        <span className="text-xs sm:text-sm text-slate-400 font-medium">{c.role}</span>
                       </div>
                     </div>
 
@@ -580,9 +583,9 @@ export function CoworkerPanel({ matterId, matterTitle, onRequestApproval, onOutc
                         <button
                           onClick={() => handleExportBundle(c.id)}
                           title="Export Portable Bundle (.bundle.json)"
-                          className="p-1 hover:text-blue-400 text-[#9aa0a6]"
+                          className="p-1.5 hover:text-blue-400 text-slate-400"
                         >
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                             <polyline points="7 10 12 15 17 10" />
                             <line x1="12" y1="15" x2="12" y2="3" />
@@ -591,9 +594,9 @@ export function CoworkerPanel({ matterId, matterTitle, onRequestApproval, onOutc
                         <button
                           onClick={() => handleDeleteCoworker(c.id)}
                           title="Delete Custom Coworker"
-                          className="p-1 hover:text-red-400 text-[#9aa0a6]"
+                          className="p-1.5 hover:text-red-400 text-slate-400"
                         >
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <polyline points="3 6 5 6 21 6" />
                             <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
                           </svg>
@@ -602,7 +605,7 @@ export function CoworkerPanel({ matterId, matterTitle, onRequestApproval, onOutc
                     )}
                   </div>
 
-                  <p className="text-[11px] text-[#bdc1c6] leading-relaxed">
+                  <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-normal">
                     {c.description}
                   </p>
 
@@ -610,9 +613,9 @@ export function CoworkerPanel({ matterId, matterTitle, onRequestApproval, onOutc
                     <button
                       onClick={() => handleStartTask(c)}
                       disabled={!matterId}
-                      className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl text-[11px] font-semibold text-white transition-all flex items-center gap-1.5 shadow-sm shadow-blue-600/20"
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl text-xs sm:text-sm font-bold text-white transition-all flex items-center gap-2 shadow-md shadow-blue-600/25"
                     >
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                         <polygon points="5 3 19 12 5 21 5 3" />
                       </svg>
                       Run Workflow
@@ -638,12 +641,12 @@ export function CoworkerPanel({ matterId, matterTitle, onRequestApproval, onOutc
 
       {/* Document Comparison (Diff) Modal */}
       {showDiffModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-fade-in">
-          <div className="bg-[#1e1f20] border border-[#3c4043] rounded-2xl w-full max-w-lg p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-[#303134] pb-3">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-blue-600/20 text-blue-400 flex items-center justify-center">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="bg-[#161a23] border border-[#2d323f] rounded-2xl w-full max-w-lg p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-[#2d323f] pb-3.5">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-blue-600/20 text-blue-400 flex items-center justify-center border border-blue-500/30">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <circle cx="18" cy="18" r="3" />
                     <circle cx="6" cy="6" r="3" />
                     <path d="M13 6h3a2 2 0 0 1 2 2v7" />
@@ -651,20 +654,20 @@ export function CoworkerPanel({ matterId, matterTitle, onRequestApproval, onOutc
                   </svg>
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold text-white">Compare Document Versions</h3>
-                  <p className="text-[11px] text-[#9aa0a6]">Contract & Document Redline Analyzer</p>
+                  <h3 className="text-base sm:text-lg font-bold text-white">Compare Document Versions</h3>
+                  <p className="text-xs sm:text-sm text-slate-300 font-medium">Contract & Document Redline Analyzer</p>
                 </div>
               </div>
-              <button onClick={() => setShowDiffModal(false)} className="text-[#9aa0a6] hover:text-white">✕</button>
+              <button onClick={() => setShowDiffModal(false)} className="text-slate-400 hover:text-white text-lg font-bold p-1">✕</button>
             </div>
 
-            <div className="space-y-3 text-xs">
+            <div className="space-y-3.5 text-xs sm:text-sm">
               <div>
-                <label className="block text-[#bdc1c6] font-medium mb-1">Base Document (Doc 1 / Original):</label>
+                <label className="block text-slate-300 font-semibold mb-1.5">Base Document (Doc 1 / Original):</label>
                 <select
                   value={doc1}
                   onChange={(e) => setDoc1(e.target.value)}
-                  className="w-full bg-[#131314] border border-[#303134] rounded-xl p-2.5 text-white outline-none focus:border-blue-500 text-xs"
+                  className="w-full bg-[#11131a] border border-[#2d323f] rounded-xl p-3 text-white outline-none focus:border-blue-500 text-xs sm:text-sm"
                 >
                   {matterFiles.map((f, i) => (
                     <option key={i} value={f.source_file}>{f.source_file}</option>
@@ -673,11 +676,11 @@ export function CoworkerPanel({ matterId, matterTitle, onRequestApproval, onOutc
               </div>
 
               <div>
-                <label className="block text-[#bdc1c6] font-medium mb-1">Revised Document (Doc 2 / Revision):</label>
+                <label className="block text-slate-300 font-semibold mb-1.5">Revised Document (Doc 2 / Revision):</label>
                 <select
                   value={doc2}
                   onChange={(e) => setDoc2(e.target.value)}
-                  className="w-full bg-[#131314] border border-[#303134] rounded-xl p-2.5 text-white outline-none focus:border-blue-500 text-xs"
+                  className="w-full bg-[#11131a] border border-[#2d323f] rounded-xl p-3 text-white outline-none focus:border-blue-500 text-xs sm:text-sm"
                 >
                   {matterFiles.map((f, i) => (
                     <option key={i} value={f.source_file}>{f.source_file}</option>
@@ -686,28 +689,28 @@ export function CoworkerPanel({ matterId, matterTitle, onRequestApproval, onOutc
               </div>
 
               <div>
-                <label className="block text-[#bdc1c6] font-medium mb-1">Optional Focus (e.g. indemnity, payment, termination):</label>
+                <label className="block text-slate-300 font-semibold mb-1.5">Optional Focus (e.g. indemnity, payment, termination):</label>
                 <input
                   type="text"
                   placeholder="Leave empty for full contractual redline"
                   value={diffFocus}
                   onChange={(e) => setDiffFocus(e.target.value)}
-                  className="w-full bg-[#131314] border border-[#303134] rounded-xl p-2.5 text-white outline-none focus:border-blue-500 text-xs"
+                  className="w-full bg-[#11131a] border border-[#2d323f] rounded-xl p-3 text-white outline-none focus:border-blue-500 text-xs sm:text-sm"
                 />
               </div>
             </div>
 
-            <div className="flex justify-end gap-2.5 pt-3 border-t border-[#303134]">
+            <div className="flex justify-end gap-3 pt-3 border-t border-[#2d323f]">
               <button
                 onClick={() => setShowDiffModal(false)}
-                className="px-4 py-2 rounded-xl text-xs text-[#9aa0a6] hover:text-white bg-[#303134]/60"
+                className="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-300 hover:text-white bg-[#202532] border border-[#2d323f]"
               >
                 Cancel
               </button>
               <button
                 onClick={handleRunDiff}
                 disabled={comparing || !doc1 || !doc2 || doc1 === doc2}
-                className="px-5 py-2 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 disabled:opacity-40 transition-all shadow-md flex items-center gap-1.5"
+                className="px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-white bg-blue-600 hover:bg-blue-500 disabled:opacity-40 transition-all shadow-md flex items-center gap-2"
               >
                 {comparing ? "Analyzing Redlines..." : "Run Redline Comparison"}
               </button>
@@ -793,30 +796,30 @@ function CreateCoworkerModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
-      <div className="bg-[#1e1f20] border border-[#303134] rounded-2xl max-w-lg w-full p-6 shadow-2xl relative">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-base font-semibold text-white flex items-center gap-2">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fade-in">
+      <div className="bg-[#161a23] border border-[#2d323f] rounded-2xl max-w-xl w-full p-6 sm:p-7 shadow-2xl relative">
+        <div className="flex items-center justify-between mb-4 pb-3 border-b border-[#2d323f]">
+          <h3 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
             <span className="text-blue-400">⚡</span>
             OpenWorker Portable Coworker
           </h3>
-          <button onClick={onClose} className="text-[#9aa0a6] hover:text-white text-lg">×</button>
+          <button onClick={onClose} className="text-slate-400 hover:text-white text-xl font-bold p-1">×</button>
         </div>
 
         {/* Tab switcher */}
-        <div className="flex gap-2 border-b border-[#303134] pb-3 mb-4 text-xs font-medium">
+        <div className="flex gap-2 border-b border-[#2d323f] pb-3.5 mb-4 text-xs sm:text-sm font-semibold">
           <button
             onClick={() => setTab("create")}
-            className={`px-3 py-1.5 rounded-lg transition-colors ${
-              tab === "create" ? "bg-blue-600 text-white" : "text-[#9aa0a6] hover:text-white"
+            className={`px-4 py-2 rounded-xl transition-colors ${
+              tab === "create" ? "bg-blue-600 text-white" : "text-slate-400 hover:text-white hover:bg-[#202532]"
             }`}
           >
             Create Coworker
           </button>
           <button
             onClick={() => setTab("import")}
-            className={`px-3 py-1.5 rounded-lg transition-colors ${
-              tab === "import" ? "bg-blue-600 text-white" : "text-[#9aa0a6] hover:text-white"
+            className={`px-4 py-2 rounded-xl transition-colors ${
+              tab === "import" ? "bg-blue-600 text-white" : "text-slate-400 hover:text-white hover:bg-[#202532]"
             }`}
           >
             Import .bundle.json
@@ -824,53 +827,53 @@ function CreateCoworkerModal({
         </div>
 
         {modalError && (
-          <div className="p-2.5 bg-red-500/10 border border-red-500/20 text-red-400 text-xs rounded-xl mb-3">
+          <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-400 text-xs sm:text-sm rounded-xl mb-3.5 font-medium">
             {modalError}
           </div>
         )}
 
         {tab === "create" ? (
-          <div className="space-y-3 text-xs max-h-[60vh] overflow-y-auto pr-1">
+          <div className="space-y-3.5 text-xs sm:text-sm max-h-[60vh] overflow-y-auto pr-1">
             <div>
-              <label className="block text-[#9aa0a6] mb-1">Coworker Name *</label>
+              <label className="block text-slate-300 font-semibold mb-1.5">Coworker Name *</label>
               <input
                 type="text"
                 placeholder="e.g. Contract Discrepancy Spotter"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full bg-[#131314] border border-[#303134] rounded-xl px-3 py-2 text-white outline-none focus:border-blue-500"
+                className="w-full bg-[#11131a] border border-[#2d323f] rounded-xl px-3.5 py-2.5 text-white outline-none focus:border-blue-500 text-xs sm:text-sm"
               />
             </div>
 
             <div>
-              <label className="block text-[#9aa0a6] mb-1">Professional Role / Persona *</label>
+              <label className="block text-slate-300 font-semibold mb-1.5">Professional Role / Persona *</label>
               <input
                 type="text"
                 placeholder="e.g. Senior Contract Specialist"
                 value={role}
                 onChange={(e) => setRole(e.target.value)}
-                className="w-full bg-[#131314] border border-[#303134] rounded-xl px-3 py-2 text-white outline-none focus:border-blue-500"
+                className="w-full bg-[#11131a] border border-[#2d323f] rounded-xl px-3.5 py-2.5 text-white outline-none focus:border-blue-500 text-xs sm:text-sm"
               />
             </div>
 
             <div>
-              <label className="block text-[#9aa0a6] mb-1">Description</label>
+              <label className="block text-slate-300 font-semibold mb-1.5">Description</label>
               <input
                 type="text"
                 placeholder="What outcome does this coworker deliver?"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                className="w-full bg-[#131314] border border-[#303134] rounded-xl px-3 py-2 text-white outline-none focus:border-blue-500"
+                className="w-full bg-[#11131a] border border-[#2d323f] rounded-xl px-3.5 py-2.5 text-white outline-none focus:border-blue-500 text-xs sm:text-sm"
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-[#9aa0a6] mb-1">Vertical</label>
+                <label className="block text-slate-300 font-semibold mb-1.5">Vertical</label>
                 <select
                   value={vertical}
                   onChange={(e) => setVertical(e.target.value)}
-                  className="w-full bg-[#131314] border border-[#303134] rounded-xl px-3 py-2 text-white outline-none"
+                  className="w-full bg-[#11131a] border border-[#2d323f] rounded-xl px-3.5 py-2.5 text-white outline-none text-xs sm:text-sm"
                 >
                   <option value="all">All Professions</option>
                   <option value="law_firm">Law Firm (Legal)</option>
@@ -881,11 +884,11 @@ function CreateCoworkerModal({
               </div>
 
               <div>
-                <label className="block text-[#9aa0a6] mb-1">Icon</label>
+                <label className="block text-slate-300 font-semibold mb-1.5">Icon</label>
                 <select
                   value={icon}
                   onChange={(e) => setIcon(e.target.value)}
-                  className="w-full bg-[#131314] border border-[#303134] rounded-xl px-3 py-2 text-white outline-none"
+                  className="w-full bg-[#11131a] border border-[#2d323f] rounded-xl px-3.5 py-2.5 text-white outline-none text-xs sm:text-sm"
                 >
                   <option value="sparkles">✨ Sparkles</option>
                   <option value="scale">⚖️ Legal Scale</option>
@@ -899,64 +902,64 @@ function CreateCoworkerModal({
             </div>
 
             <div>
-              <label className="block text-[#9aa0a6] mb-1">Default Objective / Task Query *</label>
+              <label className="block text-slate-300 font-semibold mb-1.5">Default Objective / Task Query *</label>
               <textarea
                 rows={2}
                 placeholder="e.g. cross-check all clauses for termination liabilities..."
                 value={defaultQuery}
                 onChange={(e) => setDefaultQuery(e.target.value)}
-                className="w-full bg-[#131314] border border-[#303134] rounded-xl p-2.5 text-white outline-none resize-none focus:border-blue-500"
+                className="w-full bg-[#11131a] border border-[#2d323f] rounded-xl p-3 text-white outline-none resize-none focus:border-blue-500 text-xs sm:text-sm"
               />
             </div>
 
             <div>
-              <label className="block text-[#9aa0a6] mb-1">Specialized System Prompt *</label>
+              <label className="block text-slate-300 font-semibold mb-1.5">Specialized System Prompt *</label>
               <textarea
                 rows={3}
                 placeholder="You are an expert contract specialist with 15 years experience..."
                 value={systemPrompt}
                 onChange={(e) => setSystemPrompt(e.target.value)}
-                className="w-full bg-[#131314] border border-[#303134] rounded-xl p-2.5 text-white outline-none resize-none focus:border-blue-500"
+                className="w-full bg-[#11131a] border border-[#2d323f] rounded-xl p-3 text-white outline-none resize-none focus:border-blue-500 text-xs sm:text-sm"
               />
             </div>
           </div>
         ) : (
-          <div className="space-y-3 text-xs">
+          <div className="space-y-3.5 text-xs sm:text-sm">
             <div>
-              <label className="block text-[#9aa0a6] mb-1">Upload .bundle.json file</label>
+              <label className="block text-slate-300 font-semibold mb-1.5">Upload .bundle.json file</label>
               <input
                 type="file"
                 accept=".json"
                 onChange={handleFileUpload}
-                className="text-xs text-[#9aa0a6] file:mr-2 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:bg-blue-600 file:text-white file:text-xs hover:file:bg-blue-500"
+                className="text-xs sm:text-sm text-slate-300 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-blue-600 file:text-white file:text-xs sm:file:text-sm file:font-semibold hover:file:bg-blue-500 cursor-pointer"
               />
             </div>
 
             <div>
-              <label className="block text-[#9aa0a6] mb-1">Or paste Bundle JSON</label>
+              <label className="block text-slate-300 font-semibold mb-1.5">Or paste Bundle JSON</label>
               <textarea
                 rows={8}
                 placeholder='{"format": "openworker_bundle_v1", "bundle": {...}}'
                 value={bundleJson}
                 onChange={(e) => setBundleJson(e.target.value)}
-                className="w-full bg-[#131314] border border-[#303134] rounded-xl p-2.5 text-white font-mono text-[11px] outline-none resize-none focus:border-blue-500"
+                className="w-full bg-[#11131a] border border-[#2d323f] rounded-xl p-3 text-white font-mono text-xs outline-none resize-none focus:border-blue-500"
               />
             </div>
           </div>
         )}
 
         {/* Modal buttons */}
-        <div className="flex justify-end gap-2.5 mt-5 pt-3 border-t border-[#303134]">
+        <div className="flex justify-end gap-3 mt-5 pt-3.5 border-t border-[#2d323f]">
           <button
             onClick={onClose}
-            className="px-4 py-2 rounded-xl text-xs text-[#9aa0a6] hover:text-white bg-[#303134]/60 transition-colors"
+            className="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-300 hover:text-white bg-[#202532] border border-[#2d323f] transition-colors"
           >
             Cancel
           </button>
           <button
             onClick={tab === "create" ? handleCreate : handleImport}
             disabled={saving}
-            className="px-5 py-2 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 disabled:opacity-40 transition-all flex items-center gap-1.5 shadow-md shadow-blue-600/20"
+            className="px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-white bg-blue-600 hover:bg-blue-500 disabled:opacity-40 transition-all flex items-center gap-2 shadow-md shadow-blue-600/25"
           >
             {saving ? "Saving..." : tab === "create" ? "Create Coworker" : "Import Bundle"}
           </button>

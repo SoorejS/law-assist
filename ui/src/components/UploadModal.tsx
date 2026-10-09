@@ -117,14 +117,14 @@ export function UploadModal({ matters, defaultMatter, onClose, onDone }: Props) 
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4 animate-fade-in"
       onClick={e => e.target === e.currentTarget && !isUploading && onClose()}
     >
-      <div className="bg-[#1e1f20] rounded-[28px] shadow-2xl w-full max-w-2xl mx-4 overflow-hidden border border-[#303134] relative">
+      <div className="bg-[#161a23] rounded-2xl shadow-2xl w-full max-w-2xl mx-auto overflow-hidden border border-[#2d323f] relative">
         {!isUploading && (
           <button
             onClick={onClose}
-            className="absolute top-5 right-5 text-[#9aa0a6] hover:text-[#e8eaed] p-1.5 rounded-full hover:bg-[#303134] transition-colors"
+            className="absolute top-5 right-5 text-slate-400 hover:text-white p-2 rounded-xl hover:bg-[#202532] transition-colors text-lg font-bold"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M18 6 6 18M6 6l12 12" />
@@ -132,9 +132,12 @@ export function UploadModal({ matters, defaultMatter, onClose, onDone }: Props) 
           </button>
         )}
 
-        <div className="p-8">
-          <h2 className="text-[#e8eaed] font-semibold text-xl mb-1">Add sources</h2>
-          <p className="text-[#9aa0a6] text-sm mb-6">Upload documents to your notebook. All data stays on this machine.</p>
+        <div className="p-7 sm:p-8">
+          <h2 className="text-white font-bold text-xl sm:text-2xl mb-1.5 flex items-center gap-2.5">
+            <span className="text-blue-400">📄</span>
+            Add Case Documents & Sources
+          </h2>
+          <p className="text-slate-300 text-sm sm:text-base mb-6 font-medium">Upload legal briefs, FIRs, contracts, or petitions. All intelligence processes locally on this PC.</p>
 
           {/* Drop Zone */}
           {fileItems.length === 0 && (
@@ -143,57 +146,57 @@ export function UploadModal({ matters, defaultMatter, onClose, onDone }: Props) 
               onDragLeave={() => setDragOver(false)}
               onDrop={handleDrop}
               onClick={() => inputRef.current?.click()}
-              className={`w-full border-2 border-dashed rounded-2xl p-12 flex flex-col items-center gap-4 cursor-pointer transition-all ${
+              className={`w-full border-2 border-dashed rounded-2xl p-10 sm:p-12 flex flex-col items-center gap-4 cursor-pointer transition-all ${
                 dragOver
-                  ? "border-[#8ab4f8] bg-[#8ab4f8]/5"
-                  : "border-[#3c4043] hover:border-[#5f6368] hover:bg-[#282a2c]"
+                  ? "border-blue-500 bg-blue-500/10"
+                  : "border-[#2d323f] hover:border-blue-500/60 hover:bg-[#1b202c]"
               }`}
             >
-              <div className="w-14 h-14 rounded-2xl bg-[#303134] flex items-center justify-center">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8ab4f8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <div className="w-16 h-16 rounded-2xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
                 </svg>
               </div>
-              <div className="text-center">
-                <p className="text-[#e8eaed] font-medium mb-1">Drop files here or click to browse</p>
-                <p className="text-[#9aa0a6] text-sm">PDF, DOCX, TXT, CSV, XLSX · Max {MAX_MB}MB per file</p>
+              <div className="text-center space-y-1">
+                <p className="text-white font-bold text-base sm:text-lg">Click to select files or drag & drop here</p>
+                <p className="text-slate-300 text-xs sm:text-sm font-medium">Supports PDF, DOCX, TXT, CSV, XLSX · Up to {MAX_MB}MB per file</p>
               </div>
             </div>
           )}
 
           {/* File list */}
           {fileItems.length > 0 && (
-            <div className="space-y-2 max-h-64 overflow-y-auto mb-4">
+            <div className="space-y-2.5 max-h-72 overflow-y-auto mb-5 pr-1">
               {fileItems.map(item => (
-                <div key={item.file.name} className="flex items-center gap-3 px-4 py-3 bg-[#282a2c] rounded-xl">
-                  <div className="w-5 h-5 flex items-center justify-center flex-shrink-0">
+                <div key={item.file.name} className="flex items-center gap-3 px-4 py-3.5 bg-[#11131a] border border-[#2d323f] rounded-xl">
+                  <div className="w-6 h-6 flex items-center justify-center flex-shrink-0 text-base">
                     {statusIcon(item.status) ?? (
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9aa0a6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
                       </svg>
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-[#e8eaed] truncate">{item.file.name}</span>
-                      <span className="text-xs text-[#9aa0a6] ml-2 flex-shrink-0">
-                        {item.status === "done" ? `${item.chunks} chunks` :
+                      <span className="text-sm sm:text-base font-semibold text-white truncate">{item.file.name}</span>
+                      <span className="text-xs sm:text-sm font-medium text-slate-300 ml-2 flex-shrink-0">
+                        {item.status === "done" ? `${item.chunks} chunks indexed` :
                          item.status === "skipped" ? "Already ingested" :
                          (item.file.size / 1024 / 1024).toFixed(1) + " MB"}
                       </span>
                     </div>
                     {item.status === "uploading" && (
-                      <div className="mt-1.5 w-full bg-[#303134] rounded-full h-1">
-                        <div className="bg-[#8ab4f8] h-1 rounded-full transition-all duration-300" style={{ width: `${item.progress}%` }} />
+                      <div className="mt-2 w-full bg-[#202532] rounded-full h-1.5 overflow-hidden">
+                        <div className="bg-blue-500 h-1.5 rounded-full transition-all duration-300" style={{ width: `${item.progress}%` }} />
                       </div>
                     )}
                     {item.status === "error" && item.error && (
-                      <p className="text-xs text-red-400 mt-1 truncate">{item.error}</p>
+                      <p className="text-xs sm:text-sm text-red-400 mt-1 font-medium truncate">{item.error}</p>
                     )}
                   </div>
                   {item.status === "pending" && (
-                    <button onClick={() => removeFile(item.file.name)} className="flex-shrink-0 text-[#9aa0a6] hover:text-[#f28b82] transition-colors">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <button onClick={() => removeFile(item.file.name)} className="flex-shrink-0 text-slate-400 hover:text-red-400 p-1 transition-colors">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
                       </svg>
                     </button>
@@ -204,22 +207,22 @@ export function UploadModal({ matters, defaultMatter, onClose, onDone }: Props) 
           )}
 
           {/* Add more / summary */}
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between pt-2">
             <div className="flex gap-2">
               {fileItems.length > 0 && !isDone && (
                 <button
                   onClick={() => inputRef.current?.click()}
-                  className="text-sm text-[#9aa0a6] hover:text-[#e8eaed] transition-colors flex items-center gap-1"
+                  className="text-xs sm:text-sm text-slate-300 hover:text-white transition-colors flex items-center gap-1.5 font-semibold px-3 py-1.5 rounded-xl bg-[#202532] border border-[#2d323f]"
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M5 12h14M12 5v14"/>
                   </svg>
-                  Add more
+                  Add more files
                 </button>
               )}
               {isDone && (
-                <span className="text-sm text-emerald-400 font-medium">
-                  ✓ {doneCount} ingested{errorCount > 0 ? `, ${errorCount} failed` : ""}
+                <span className="text-sm sm:text-base text-emerald-400 font-bold">
+                  ✓ {doneCount} files ingested{errorCount > 0 ? `, ${errorCount} failed` : ""}
                 </span>
               )}
             </div>
@@ -227,17 +230,17 @@ export function UploadModal({ matters, defaultMatter, onClose, onDone }: Props) 
             {pendingCount > 0 && !isUploading && (
               <button
                 onClick={handleUpload}
-                className="px-6 py-2.5 bg-[#8ab4f8] hover:bg-[#aecbfa] text-[#131314] rounded-full text-sm font-semibold transition-colors"
+                className="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm sm:text-base font-bold transition-all shadow-md shadow-blue-600/25 flex items-center gap-2"
               >
-                Upload {pendingCount} {pendingCount === 1 ? "file" : "files"}
+                Ingest {pendingCount} {pendingCount === 1 ? "File" : "Files"}
               </button>
             )}
             {isUploading && (
-              <span className="text-sm text-[#9aa0a6] flex items-center gap-2">
-                <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <span className="text-sm sm:text-base text-blue-400 font-semibold flex items-center gap-2.5">
+                <svg className="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
                 </svg>
-                Processing…
+                Processing & Indexing…
               </span>
             )}
           </div>

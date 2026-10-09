@@ -23,7 +23,7 @@ export function SetupScreen({ onComplete }: { onComplete: () => void }) {
   return (
     <div className="flex h-screen items-center justify-center bg-gradient-to-br from-slate-900 to-blue-900">
       <div className="bg-white/10 backdrop-blur-lg p-8 rounded-2xl shadow-2xl w-full max-w-md border border-white/20">
-        <h2 className="text-3xl font-bold text-white mb-2">Welcome to Saravonix</h2>
+        <h2 className="text-3xl font-bold text-white mb-2">Welcome to ProAssist</h2>
         <p className="text-slate-300 mb-8">Let's set up your firm's local workspace.</p>
         
         {error && <div className="bg-red-500/20 text-red-200 p-3 rounded mb-4 text-sm border border-red-500/50">{error}</div>}

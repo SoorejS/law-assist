@@ -66,7 +66,7 @@ export function LoginScreen({ onLogin }: { onLogin: () => void }) {
   return (
     <div className="flex flex-col h-screen items-center justify-center bg-slate-950 px-4">
       <div className="absolute top-8 left-8">
-        <h2 className="text-slate-500 text-xl font-bold tracking-widest uppercase">Saravonix</h2>
+        <h2 className="text-slate-400 text-xl font-bold tracking-widest uppercase">ProAssist</h2>
       </div>
       <h1 className="text-4xl md:text-5xl font-bold text-white mb-16 tracking-tight">Who is working?</h1>
       <div className="flex flex-wrap justify-center gap-10 max-w-5xl">

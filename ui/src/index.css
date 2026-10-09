@@ -13,22 +13,77 @@
     height: 100%;
     margin: 0;
     padding: 0;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 
-  /* Custom scrollbar — slim, unobtrusive */
+  /* Font size scale support for senior advocates & high legibility */
+  html[data-font-size="compact"] {
+    font-size: 14px;
+  }
+  html[data-font-size="standard"], html:not([data-font-size]) {
+    font-size: 16px;
+  }
+  html[data-font-size="large"] {
+    font-size: 18px;
+  }
+  html[data-font-size="xlarge"] {
+    font-size: 20px;
+  }
+
+  /* Font Families (Legal Courtroom Serif vs Modern Sans vs Windows System) */
+  html[data-font-family="sans"], html:not([data-font-family]) {
+    font-family: "Plus Jakarta Sans", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  html[data-font-family="serif"] {
+    font-family: "Merriweather", Georgia, "Times New Roman", Cambria, serif;
+  }
+  html[data-font-family="system"] {
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  }
+
+  /* High-Contrast Text Boldness (Assists reading for senior eyes) */
+  html[data-text-boldness="bold"] body {
+    font-weight: 500;
+    -webkit-font-smoothing: subpixel-antialiased;
+  }
+  html[data-text-boldness="bold"] p,
+  html[data-text-boldness="bold"] span,
+  html[data-text-boldness="bold"] input,
+  html[data-text-boldness="bold"] textarea {
+    font-weight: 500;
+  }
+
+  /* Paper / Warm Parchment Light Theme for advocates who prefer physical stationery */
+  html[data-theme="paper"] {
+    filter: invert(0.93) hue-rotate(185deg) contrast(1.05);
+  }
+  html[data-theme="paper"] img,
+  html[data-theme="paper"] video {
+    filter: invert(1) hue-rotate(175deg);
+  }
+
+  /* Warm Slate Dark Theme */
+  html[data-theme="slate"] body {
+    background-color: #12151e !important;
+  }
+
+  /* Custom scrollbar — high visibility */
   ::-webkit-scrollbar {
-    width: 5px;
-    height: 5px;
+    width: 8px;
+    height: 8px;
   }
   ::-webkit-scrollbar-track {
-    background: transparent;
+    background: #111215;
   }
   ::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
+    background: #3f444e;
     border-radius: 99px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: #94a3b8;
+    background: #5f6675;
   }
 
   /* Prevent text selection during drag */
